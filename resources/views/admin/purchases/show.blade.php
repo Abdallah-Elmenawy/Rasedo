@@ -9,6 +9,87 @@
         ],
     ])
 @endsection
+@section('css')
+<style>
+    .inv-attachment .inv-attachment-grid {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+    .inv-attachment .inv-attachment-preview { width: 100%; }
+    .inv-attachment .inv-attachment-thumb,
+    .inv-attachment .inv-attachment-file,
+    .inv-attachment .inv-attachment-empty {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 10px;
+        border: 1px solid #E6EEF8;
+        background: #F7FAFE;
+        overflow: hidden;
+        text-decoration: none !important;
+    }
+    .inv-attachment .inv-attachment-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform .25s ease;
+    }
+    .inv-attachment .inv-attachment-thumb:hover img { transform: scale(1.04); }
+    .inv-attachment .inv-attachment-zoom {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(30, 78, 155, .88);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+    }
+    .inv-attachment .inv-attachment-file { color: #1E4E9B; }
+    .inv-attachment .inv-attachment-file i { font-size: 40px; }
+    .inv-attachment .inv-attachment-file span { font-weight: 800; }
+    .inv-attachment .inv-attachment-file small { color: #6B7280; font-weight: 700; }
+    .inv-attachment .inv-attachment-empty { color: #9CA3AF; font-weight: 700; font-size: 13px; text-align: center; padding: 12px; }
+    .inv-attachment .inv-attachment-empty i { font-size: 34px; color: #C7D3E3; }
+    .inv-attachment .inv-attachment-form,
+    .inv-attachment .inv-attachment-form * { text-align: right; }
+    .inv-attachment .inv-attachment-form { display: flex; flex-direction: column; gap: 8px; }
+    .inv-attachment .inv-attachment-label { margin: 0; font-weight: 800; color: #2D3E50; }
+    .inv-attachment .inv-attachment-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 6px;
+    }
+    .inv-attachment .inv-attachment-remove {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        color: #EF4444;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    @media (max-width: 575.98px) {
+        .inv-attachment .inv-attachment-grid { grid-template-columns: 1fr; }
+        .inv-attachment .inv-attachment-preview { max-width: 240px; margin: 0 auto; }
+    }
+</style>
+@endsection
 @section('content')
 <x-invoice-sheet
     :invoice="$invoice"
@@ -36,40 +117,53 @@
     </x-slot:actions>
 </x-invoice-sheet>
 
-<div class="card mt-3">
+<div class="card mt-3 inv-attachment">
+    <div class="card-header">
+        <h4 class="card-title"><i class="fe fe-paperclip"></i> مرفق الفاتورة</h4>
+    </div>
     <div class="card-body">
-        <h5 class="mb-3">مرفق الفاتورة</h5>
-        @if($invoice->attachmentUrl())
-            @if($invoice->attachmentIsImage())
-                <button type="button" class="btn p-0 border-0 bg-transparent" data-toggle="modal" data-target="#attachmentModal" aria-label="عرض مرفق {{ $invoice->number }}">
-                    <img src="{{ $invoice->attachmentUrl() }}" alt="مرفق {{ $invoice->number }}" style="max-height:180px;border-radius:8px;border:1px solid #E8EDF5">
-                </button>
-            @else
-                <a class="btn btn-outline-primary" href="{{ $invoice->attachmentUrl() }}" target="_blank" rel="noopener">
-                    <i class="fe fe-file ml-1"></i> {{ $invoice->number }}
-                </a>
-            @endif
-        @else
-            <p class="text-muted mb-3">لا يوجد مرفق لهذه الفاتورة.</p>
-        @endif
-        @if(can('purchases.update'))
-            <form method="post" action="{{ route('purchases.attachment', $invoice) }}" enctype="multipart/form-data" class="mt-3">
-                @csrf
-                <div class="form-group mb-2">
-                    <label for="show_purchase_attachment">{{ $invoice->attachmentUrl() ? 'استبدال المرفق' : 'رفع مرفق' }}</label>
-                    <input id="show_purchase_attachment" type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
-                    <small class="text-muted d-block mt-1">يتحفظ باسم {{ $invoice->number }}.</small>
-                    @error('attachment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                </div>
+        <div class="inv-attachment-grid">
+            <div class="inv-attachment-preview">
                 @if($invoice->attachmentUrl())
-                    <label class="d-block mb-2">
-                        <input type="checkbox" name="remove_attachment" value="1" @checked(old('remove_attachment'))>
-                        حذف المرفق
-                    </label>
+                    @if($invoice->attachmentIsImage())
+                        <a href="#attachmentModal" class="inv-attachment-thumb" data-toggle="modal" aria-label="عرض مرفق {{ $invoice->number }}">
+                            <img src="{{ $invoice->attachmentUrl() }}" alt="مرفق {{ $invoice->number }}">
+                            <span class="inv-attachment-zoom"><i class="fe fe-maximize-2"></i> عرض</span>
+                        </a>
+                    @else
+                        <a class="inv-attachment-file" href="{{ $invoice->attachmentUrl() }}" target="_blank" rel="noopener">
+                            <i class="fe fe-file-text"></i>
+                            <span>{{ $invoice->number }}</span>
+                            <small>فتح الملف</small>
+                        </a>
+                    @endif
+                @else
+                    <div class="inv-attachment-empty">
+                        <i class="fe fe-image"></i>
+                        <span>لا يوجد مرفق لهذه الفاتورة</span>
+                    </div>
                 @endif
-                <button class="btn btn-primary" type="submit">حفظ المرفق</button>
-            </form>
-        @endif
+            </div>
+
+            @if(can('purchases.update'))
+                <form method="post" action="{{ route('purchases.attachment', $invoice) }}" enctype="multipart/form-data" class="inv-attachment-form">
+                    @csrf
+                    <label class="inv-attachment-label" for="show_purchase_attachment">{{ $invoice->attachmentUrl() ? 'استبدال المرفق' : 'رفع مرفق' }}</label>
+                    <x-file-input name="attachment" id="show_purchase_attachment" accept=".pdf,.jpg,.jpeg,.png,.webp" placeholder="اختر ملفاً (PDF أو صورة)" />
+                    <small class="text-muted d-block">يتحفظ باسم {{ $invoice->number }}.</small>
+                    @error('attachment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    <div class="inv-attachment-actions">
+                        @if($invoice->attachmentUrl())
+                            <label class="inv-attachment-remove">
+                                <input type="checkbox" name="remove_attachment" value="1" @checked(old('remove_attachment'))>
+                                <span>حذف المرفق</span>
+                            </label>
+                        @endif
+                        <button class="btn btn-primary" type="submit"><i class="fe fe-save ml-1"></i> حفظ المرفق</button>
+                    </div>
+                </form>
+            @endif
+        </div>
     </div>
 </div>
 

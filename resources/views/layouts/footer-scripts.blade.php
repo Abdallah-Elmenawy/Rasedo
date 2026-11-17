@@ -34,6 +34,18 @@ jQuery(document).on('show.bs.modal', '.modal', function () {
 <!-- Eva-icons js -->
 <script src="{{URL::asset('assets/js/eva-icons.min.js')}}"></script>
 @yield('js')
+@stack('scripts')
+<script>
+document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input.matches || !input.matches('.file-drop input[type="file"]')) return;
+    var drop = input.closest('.file-drop');
+    var label = drop.querySelector('.file-drop-name');
+    var file = input.files && input.files[0];
+    label.textContent = file ? file.name : label.getAttribute('data-placeholder');
+    drop.classList.toggle('has-file', !!file);
+});
+</script>
 <!-- Sticky js -->
 <script src="{{URL::asset('assets/js/sticky.js')}}"></script>
 <!-- custom js -->

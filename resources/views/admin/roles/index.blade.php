@@ -63,7 +63,7 @@
                     <td><span class="badge badge-light">{{ $role->users_count }} مستخدم</span></td>
                     <td class="col-actions">
                         <div class="btn-actions">
-                            @if(can('users.update'))
+                            @if(can('users.update') && ($role->slug !== 'admin' || auth()->user()->isAdmin()))
                                 <x-edit-link :href="route('roles.edit', $role)" />
                             @endif
                             @if(can('users.delete') && $role->slug !== 'admin')
@@ -104,7 +104,6 @@
                             <input id="role_description" name="description" class="form-control" value="{{ old('description') }}" placeholder="وصف مختصر للدور">
                         </div>
                     </div>
-                    <h5 class="mb-3">الصلاحيات</h5>
                     @include('admin.roles._permissions', ['selected' => old('permissions', [])])
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">

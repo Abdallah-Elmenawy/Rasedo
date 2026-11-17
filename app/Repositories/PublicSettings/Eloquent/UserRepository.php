@@ -34,13 +34,15 @@ class UserRepository implements UserRepositoryInterface
         return $user;
     }
 
-    public function syncExtraPermissions(User $user, array $permissionIds): void
+    public function syncPermissionOverrides(User $user, array $grantedIds, array $revokedIds): void
     {
-        $user->extraPermissions()->sync($permissionIds);
+        $rows = array_fill_keys($grantedIds, ['granted' => true]) + array_fill_keys($revokedIds, ['granted' => false]);
+        $user->permissionOverrides()->sync($rows);
+        $user->unsetRelation('permissionOverrides');
     }
 
     public function loadEditor(User $user): User
     {
-        return $user->load('extraPermissions');
+        return $user->load(['role.permissions', 'permissionOverrides']);
     }
 }

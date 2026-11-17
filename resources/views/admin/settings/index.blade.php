@@ -102,7 +102,7 @@
                                 </div>
                                 <div class="col-md-6 form-group">
                                     <label>لوجو الشركة</label>
-                                    <input name="logo" type="file" accept="image/*" class="form-control @error('logo') is-invalid @enderror">
+                                    <x-file-input name="logo" accept="image/*" icon="fe-image" placeholder="اختر صورة اللوجو" />
                                     @error('logo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if(company_logo_url())
                                         <img src="{{ company_logo_url() }}" alt="اللوجو" class="settings-logo">

@@ -13,7 +13,7 @@ interface UserRepositoryInterface
 
     public function update(User $user, array $data): User;
 
-    public function syncExtraPermissions(User $user, array $permissionIds): void;
+    public function syncPermissionOverrides(User $user, array $grantedIds, array $revokedIds): void;
 
     public function loadEditor(User $user): User;
 }

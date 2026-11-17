@@ -4,28 +4,25 @@
 @endsection
 @section('css')
 <style>
-    .user-edit-page .perm-card {
-        background: #F8FAFC;
-        border: 1px solid #EEF1F6;
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
-        height: 100%;
-        text-align: right;
+    .user-perms-board .perm-item { cursor: pointer; }
+    .user-perms-board .perm-copy strong { font-size: 13px; }
+    .user-perms-board .perm-tag {
+        display: none; align-items: center; gap: 4px; flex-shrink: 0;
+        padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800;
     }
-    .user-edit-page .perm-card h6 {
-        margin-bottom: 0.75rem;
-        font-weight: 800;
-        color: #2D3E50;
-    }
-    .user-edit-page .perm-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 0.45rem;
-        font-weight: 600;
-        color: #1F2937;
-        font-size: 14px;
-    }
+    .user-perms-board .perm-tag.is-role { background: #fff; border: 1px solid #D3E6F8; color: #1E4E9B; }
+    .user-perms-board .perm-tag.is-extra { background: var(--b-gradient, linear-gradient(135deg, #5B92D4 0%, #1E4E9B 100%)); color: #fff; }
+    .user-perms-board .perm-tag.is-revoked { background: #F4F7FB; border: 1px solid #E3E8F0; color: #6B7280; }
+    .user-perms-board .perm-item[data-state="role"] .perm-tag.is-role,
+    .user-perms-board .perm-item[data-state="extra"] .perm-tag.is-extra,
+    .user-perms-board .perm-item[data-state="revoked"] .perm-tag.is-revoked { display: inline-flex; }
+    .user-perms-board .perm-item[data-state="extra"] { border-color: #5B92D4; }
+    .user-perms-board .perm-item[data-state="revoked"] { border: 1px dashed #D5DCE6; }
+    .user-perms-board .perm-item[data-state="revoked"] .perm-copy strong { color: #6B7280; text-decoration: line-through; text-decoration-color: #B8C2D0; }
+    .user-perms-board .perm-item:has(input:disabled) { cursor: not-allowed; }
+    .user-perms:not(.is-admin-role) .perm-item:has(input:disabled) { opacity: .55; }
+    .user-perms-board .perm-all.is-disabled { opacity: .45; cursor: not-allowed; }
+    .user-perms-empty { margin: 1rem 0 0; text-align: center; color: #9CA3AF; font-weight: 700; }
     .user-edit-page .otp-check {
         display: inline-flex;
         align-items: center;
@@ -78,11 +75,13 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="role_id">الدور</label>
-                        <select id="role_id" name="role_id" class="form-control">
+                        <select id="role_id" name="role_id" class="form-control @error('role_id') is-invalid @enderror">
                             @foreach($roles as $r)
+                                @continue($r->id !== $user->role_id && ! \App\Support\PermissionCatalog::canAssignRole(auth()->user(), $r))
                                 <option value="{{ $r->id }}" @selected(old('role_id', $user->role_id) == $r->id)>{{ $r->name }}</option>
                             @endforeach
                         </select>
+                        @error('role_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="status">الحالة</label>
@@ -91,6 +90,7 @@
                                 <option value="{{ $k }}" @selected(old('status', $user->status) === $k)>{{ $v }}</option>
                             @endforeach
                         </select>
+                        @error('status')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4 form-group">
                         <label>التحقق بخطوتين</label>
@@ -101,24 +101,11 @@
                     </div>
                 </div>
 
-                <h4 class="mt-3 mb-3">صلاحيات إضافية</h4>
-                <div class="row">
-                    @foreach($permissions as $module => $items)
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="perm-card">
-                                <h6>{{ $module }}</h6>
-                                @foreach($items as $p)
-                                    <label class="perm-item">
-                                        <input type="checkbox" name="permissions[]" value="{{ $p->id }}" @checked(collect(old('permissions', $user->extraPermissions->pluck('id')->all()))->contains($p->id))>
-                                        <span>{{ $p->name }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
+                @include('admin.users._permissions', [
+                    'selected' => old('permissions', $user->permissionIds()),
+                ])
 
-                <div class="form-actions">
+                <div class="form-actions mt-4">
                     <button type="submit" class="btn btn-primary">حفظ</button>
                     <a href="{{ route('users.index') }}" class="btn btn-light">رجوع</a>
                 </div>

@@ -1,10 +1,20 @@
 @php
-    $filled = collect(request()->except('page'))->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty();
+    preg_match_all('/\bname="([^"\[]+)/', (string) $slot, $fieldNames);
+    $activeCount = collect(request()->only(array_unique($fieldNames[1])))
+        ->filter(fn ($value) => $value !== null && $value !== '')
+        ->count();
+    $filled = $activeCount > 0;
 @endphp
 <div class="filter-launch-wrap">
+    @if($filled)
+        <a href="{{ url()->current() }}" class="filter-launch-clear" title="مسح الفلتر"><i class="fe fe-x"></i> مسح</a>
+    @endif
     <button type="button" class="filter-launch {{ $filled ? 'is-active' : '' }}" data-filter-open>
         <span class="filter-launch-icon"><i class="fe fe-filter"></i></span>
         <span>فلتر</span>
+        @if($filled)
+            <span class="filter-launch-count">{{ $activeCount }}</span>
+        @endif
     </button>
 </div>
 <div class="filter-drawer" data-filter-drawer>
@@ -52,8 +62,12 @@ function closeFilterDrawer(drawer) {
 document.addEventListener('click', function (event) {
     var openBtn = event.target.closest('[data-filter-open]');
     if (openBtn) {
-        var drawer = openBtn.parentElement.nextElementSibling;
+        var drawer = openBtn._filterDrawer || openBtn.parentElement.nextElementSibling;
         if (!drawer) return;
+        if (drawer.parentElement !== document.body) {
+            openBtn._filterDrawer = drawer;
+            document.body.appendChild(drawer);
+        }
         drawer.classList.remove('is-closing');
         drawer.classList.add('is-open');
         return;

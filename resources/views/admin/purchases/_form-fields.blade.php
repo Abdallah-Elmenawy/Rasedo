@@ -102,7 +102,7 @@
 <div class="row">
     <div class="col-md-8 form-group">
         <label for="purchase_attachment">مرفق الفاتورة</label>
-        <input id="purchase_attachment" type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
+        <x-file-input name="attachment" id="purchase_attachment" accept=".pdf,.jpg,.jpeg,.png,.webp" placeholder="اختر ملفاً (PDF أو صورة)" />
         <small class="text-muted d-block mt-1">PDF أو صورة. يتحفظ باسم رقم الفاتورة، ويمكن استبداله أو حذفه لاحقاً.</small>
         @error('attachment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
         @if($invoice->exists && $invoice->attachmentUrl())

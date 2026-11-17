@@ -29,6 +29,8 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        $this->ensureManageable($user);
+
         return view('admin.users.edit', $this->users->editor($user));
     }
 
@@ -45,6 +47,7 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
+        $this->ensureManageable($user);
         $data = $request->safe()->except(['avatar', 'remove_avatar']);
         $this->applyAvatar($request, $user, $data);
         $this->users->update(
@@ -59,6 +62,7 @@ class UserController extends Controller
 
     public function updateAvatar(Request $request, User $user)
     {
+        $this->ensureManageable($user);
         $request->validate([
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:4096'],
             'remove_avatar' => ['nullable', 'boolean'],
@@ -74,6 +78,7 @@ class UserController extends Controller
         if ($user->id === auth()->id()) {
             return back()->with('error', 'لا يمكنك حذف حسابك الحالي.');
         }
+        $this->ensureManageable($user);
 
         try {
             $name = $user->name;
@@ -84,6 +89,11 @@ class UserController extends Controller
         }
 
         return back()->with('success', 'تم حذف المستخدم.');
+    }
+
+    private function ensureManageable(User $user): void
+    {
+        abort_if($user->isAdmin() && ! auth()->user()?->isAdmin(), 403, 'حساب مدير النظام يعدّله مدير النظام فقط.');
     }
 
     private function applyAvatar(Request $request, User $user, ?array &$data = null): void

@@ -19,6 +19,8 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
+        $this->ensureManageable($role);
+
         return view('admin.roles.edit', $this->roles->editor($role));
     }
 
@@ -35,6 +37,7 @@ class RoleController extends Controller
 
     public function update(StoreRoleRequest $request, Role $role)
     {
+        $this->ensureManageable($role);
         $this->roles->update(
             $role,
             $request->safe()->only(['name', 'description']),
@@ -47,6 +50,7 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $this->ensureManageable($role);
         try {
             $this->roles->delete($role);
         } catch (RuntimeException $e) {
@@ -54,5 +58,10 @@ class RoleController extends Controller
         }
 
         return back()->with('success', 'تم حذف الدور.');
+    }
+
+    private function ensureManageable(Role $role): void
+    {
+        abort_if($role->slug === 'admin' && ! auth()->user()?->isAdmin(), 403, 'دور مدير النظام يعدّله مدير النظام فقط.');
     }
 }

@@ -13,9 +13,6 @@
         <span class="count-badge">{{ $role->permissions->count() }} صلاحية</span>
     </div>
     <div class="card-body p-4">
-        @if($role->slug === 'admin')
-            <div class="alert alert-info">صلاحيات مدير النظام تبقى مفعّلة كلها. تقدر تعدّل نص الجملة نفسها، مثل لوحة التحكم وباقي الأقسام.</div>
-        @endif
         <form method="post" action="{{ route('roles.update', $role) }}">
             @csrf
             @method('PUT')
@@ -31,13 +28,12 @@
                 </div>
             </div>
 
-            <h5 class="mb-3">الصلاحيات</h5>
             @include('admin.roles._permissions', [
                 'selected' => old('permissions', $role->permissions->pluck('id')->all()),
                 'locked' => $role->slug === 'admin',
             ])
 
-            <div class="form-actions">
+            <div class="form-actions mt-4">
                 <button type="submit" class="btn btn-primary">حفظ</button>
                 <a href="{{ route('roles.index') }}" class="btn btn-light">رجوع</a>
             </div>

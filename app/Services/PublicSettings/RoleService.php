@@ -43,6 +43,7 @@ class RoleService
             'filters' => $filters,
             'permissions' => $this->groupedPermissions(),
             'modules' => PermissionCatalog::modules(),
+            'grantable' => auth()->user()?->permissionIds() ?? [],
         ];
     }
 
@@ -54,6 +55,7 @@ class RoleService
             'role' => $role->load('permissions'),
             'permissions' => $this->groupedPermissions(),
             'modules' => PermissionCatalog::modules(),
+            'grantable' => auth()->user()?->permissionIds() ?? [],
         ];
     }
 
@@ -66,7 +68,7 @@ class RoleService
             $slug = $base.'-'.$i++;
         }
         $role = $this->roles->create($data + ['slug' => $slug]);
-        $this->roles->syncPermissions($role, $permissionIds);
+        $this->roles->syncPermissions($role, PermissionCatalog::restrictToActor([], $permissionIds, auth()->user()));
         $this->renamePermissions($permissionNames);
         ActivityLog::record('users', 'create', "إضافة دور {$role->name}", $role);
 
@@ -75,8 +77,11 @@ class RoleService
 
     public function update(Role $role, array $data, array $permissionIds, array $permissionNames = []): Role
     {
+        $current = $role->permissions()->pluck('permissions.id')->all();
         $role = $this->roles->update($role, $data);
-        $ids = $role->slug === 'admin' ? $this->permissions->allIds()->all() : $permissionIds;
+        $ids = $role->slug === 'admin'
+            ? $this->permissions->allIds()->all()
+            : PermissionCatalog::restrictToActor($current, $permissionIds, auth()->user());
         $this->roles->syncPermissions($role, $ids);
         $this->renamePermissions($permissionNames);
         ActivityLog::record('users', 'update', "تعديل دور {$role->name}", $role);
@@ -110,11 +115,6 @@ class RoleService
 
     protected function groupedPermissions()
     {
-        $grouped = $this->permissions->all()->groupBy('module');
-        $order = ['view' => 1, 'create' => 2, 'update' => 3, 'delete' => 4];
-
-        return collect(PermissionCatalog::modules())
-            ->map(fn ($label, $module) => ($grouped->get($module) ?? collect())->sortBy(fn ($permission) => $order[$permission->action] ?? 9)->values())
-            ->filter(fn ($items) => $items->isNotEmpty());
+        return PermissionCatalog::grouped($this->permissions->all());
     }
 }

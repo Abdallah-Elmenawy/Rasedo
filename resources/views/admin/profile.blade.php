@@ -101,28 +101,88 @@
         font-weight: 700;
         background-image: linear-gradient(135deg, rgba(74, 144, 226, 0.12), rgba(155, 81, 224, 0.18));
     }
-    .profile-page .profile-avatar-label {
-        color: #6B7280;
-        font-weight: 600;
-        margin: 0;
-        font-size: 14px;
+    .profile-page .profile-avatar-wrap {
+        padding-bottom: 1.75rem;
+        border-bottom: 1px solid #EEF2F8;
     }
-    .profile-page .profile-avatar-picker {
-        display: inline-flex;
-        flex-direction: column;
+    .profile-page .profile-avatar-frame {
+        position: relative;
+        width: 120px;
+        margin: 0 auto 0.75rem;
+    }
+    .profile-page .profile-avatar-frame .profile-avatar {
+        margin: 0;
+        transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .profile-page .profile-avatar-cam {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        width: 36px;
+        height: 36px;
+        margin: 0;
+        border-radius: 50%;
+        display: flex;
         align-items: center;
-        gap: 8px;
-        margin: 0;
+        justify-content: center;
+        background: linear-gradient(135deg, #5B92D4 0%, #1E4E9B 100%);
+        color: #fff;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 10px rgba(30, 78, 155, 0.3);
         cursor: pointer;
-        color: #1E4E9B;
+        font-size: 15px;
+        transition: transform 0.15s ease;
+    }
+    .profile-page .profile-avatar-cam:hover { transform: scale(1.08); }
+    .profile-page .profile-avatar-name {
         font-weight: 700;
+        font-size: 16px;
+        color: #1F2937;
     }
-    .profile-page .profile-avatar-remove {
-        display: block;
-        margin-top: 8px;
-        color: #6B7280;
-        font-weight: 600;
+    .profile-page .profile-avatar-hint {
+        font-size: 12px;
+        color: #8A96A8;
+        margin-top: 2px;
     }
+    .profile-page .is-removing .profile-avatar { opacity: 0.55; filter: grayscale(1); }
+    .profile-page .is-removing .profile-avatar-hint { color: #DC2626; font-weight: 600; }
+    .profile-page .profile-avatar-actions {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .profile-page .profile-avatar-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 16px;
+        margin: 0;
+        border-radius: 10px;
+        border: 1px solid #DCE6F3;
+        background: #fff;
+        color: #4B5563;
+        font-size: 13px !important;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .profile-page .profile-avatar-btn:hover { background: #F7FAFE; }
+    .profile-page .profile-avatar-btn.is-primary {
+        background: #EEF4FC;
+        border-color: #B9D2EE;
+        color: #1E4E9B;
+    }
+    .profile-page .profile-avatar-btn.is-primary:hover { background: #E1ECF9; }
+    .profile-page .profile-avatar-btn.is-danger {
+        background: #FEF2F2;
+        border-color: #FBD5D5;
+        color: #DC2626;
+    }
+    .profile-page .profile-avatar-btn.is-danger:hover { background: #FDE5E5; }
     .profile-page .profile-input:focus {
         background: #fff !important;
         border: 1.5px solid #1E4E9B !important;
@@ -198,15 +258,22 @@
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="_profile_tab" value="basic">
-                            <div class="profile-avatar-wrap">
-                                <label for="profileAvatar" class="profile-avatar-picker">
+                            <div class="profile-avatar-wrap" id="profileAvatarBox"
+                                 data-original="{{ user_avatar($user) }}"
+                                 data-default="{{ asset('assets/img/brand/avatar-default.svg') }}">
+                                <div class="profile-avatar-frame">
                                     <img src="{{ user_avatar($user) }}" alt="{{ $user->name }}" class="profile-avatar" id="profileAvatarPreview">
-                                    <span>تغيير الصورة</span>
-                                </label>
+                                    <label for="profileAvatar" class="profile-avatar-cam" title="تغيير الصورة"><i class="fe fe-camera"></i></label>
+                                </div>
+                                <div class="profile-avatar-name">{{ $user->name }}</div>
+                                <div class="profile-avatar-hint" id="profileAvatarHint">الصيغ المسموحة: PNG ، JPG ، WEBP</div>
                                 <input id="profileAvatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="d-none">
-                                @if($user->avatar)
-                                    <label class="profile-avatar-remove"><input type="checkbox" name="remove_avatar" value="1"> حذف الصورة</label>
-                                @endif
+                                <input type="hidden" name="remove_avatar" value="0" id="profileAvatarRemove">
+                                <div class="profile-avatar-actions">
+                                    <label for="profileAvatar" class="profile-avatar-btn is-primary"><i class="fe fe-upload"></i> تغيير الصورة</label>
+                                    <button type="button" class="profile-avatar-btn is-danger {{ $user->avatar ? '' : 'd-none' }}" id="profileAvatarDelete"><i class="fe fe-trash-2"></i> حذف</button>
+                                    <button type="button" class="profile-avatar-btn d-none" id="profileAvatarUndo"><i class="fe fe-rotate-ccw"></i> تراجع</button>
+                                </div>
                                 @error('avatar')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
                             </div>
                             <div class="row">
@@ -280,10 +347,34 @@
         showProfileTab($(this).data('profile-tab'));
     });
 
+    var $box = $('#profileAvatarBox');
+    var $hint = $('#profileAvatarHint');
+    var hintText = $hint.text();
+    var hasAvatar = !$('#profileAvatarDelete').hasClass('d-none');
+
+    function setAvatarState(state, src) {
+        $('#profileAvatarPreview').attr('src', src);
+        $box.toggleClass('is-removing', state === 'removing');
+        $('#profileAvatarRemove').val(state === 'removing' ? '1' : '0');
+        $('#profileAvatarDelete').toggleClass('d-none', state !== 'original' || !hasAvatar);
+        $('#profileAvatarUndo').toggleClass('d-none', state === 'original');
+        $hint.text(state === 'removing' ? 'سيتم حذف الصورة عند الحفظ' : (state === 'new' ? 'صورة جديدة — اضغط حفظ للتطبيق' : hintText));
+    }
+
     $(document).on('change', '#profileAvatar', function () {
         var file = this.files && this.files[0];
         if (!file) return;
-        $('#profileAvatarPreview').attr('src', URL.createObjectURL(file));
+        setAvatarState('new', URL.createObjectURL(file));
+    });
+
+    $(document).on('click', '#profileAvatarDelete', function () {
+        $('#profileAvatar').val('');
+        setAvatarState('removing', $box.data('default'));
+    });
+
+    $(document).on('click', '#profileAvatarUndo', function () {
+        $('#profileAvatar').val('');
+        setAvatarState('original', $box.data('original'));
     });
 })(window.jQuery);
 </script>

@@ -22,4 +22,4 @@
 <link href="{{ URL::asset('assets/css-rtl/skin-modes.css') }}" rel="stylesheet">
 <link href="{{ URL::asset('assets/css/cairo.css') }}" rel="stylesheet">
 <!--- Rasedo theme -->
-<link href="{{ URL::asset('assets/css/rasedo-theme.css') }}?v=36" rel="stylesheet">
+<link href="{{ URL::asset('assets/css/rasedo-theme.css') }}?v=43" rel="stylesheet">

@@ -2,7 +2,7 @@
     <img src="{{ isset($user) ? user_avatar($user) : asset('assets/img/brand/avatar-default.svg') }}" alt="صورة المستخدم" class="user-avatar-preview">
     <div class="flex-fill">
         <label class="mb-1">الصورة الشخصية</label>
-        <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" class="form-control user-avatar-input">
+        <x-file-input name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" class="user-avatar-input" icon="fe-image" placeholder="اختر صورة (PNG, JPG, WEBP)" />
         <div class="text-muted small mt-1">تظهر في الشريط الجانبي وأعلى الصفحة لهذا المستخدم.</div>
         @if(! empty($user?->avatar))
             <label class="mt-2 mb-0 d-block"><input type="checkbox" name="remove_avatar" value="1"> حذف الصورة والرجوع للافتراضية</label>

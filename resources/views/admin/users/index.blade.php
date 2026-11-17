@@ -51,8 +51,9 @@
                     <td class="col-actions">
                         <div class="btn-actions">
                                 <x-view-link :href="route('users.show', $u)" title="عرض المستخدم" />
-                                @if(can('users.update'))<x-edit-link :href="route('users.edit', $u)" />@endif
-                                @if(can('users.delete') && $u->id !== auth()->id())
+                                @php $manageable = ! $u->isAdmin() || auth()->user()->isAdmin(); @endphp
+                                @if(can('users.update') && $manageable)<x-edit-link :href="route('users.edit', $u)" />@endif
+                                @if(can('users.delete') && $manageable && $u->id !== auth()->id())
                                     <x-delete-form :action="route('users.destroy', $u)" message="هل أنت متأكد من حذف المستخدم {{ $u->name }}؟" title="حذف المستخدم" />
                                 @endif
                         </div>
@@ -113,6 +114,7 @@
                                 <select id="add_role" name="role_id" class="form-control @error('role_id') is-invalid @enderror" required>
                                     <option value="">اختر الدور</option>
                                     @foreach($roles as $r)
+                                        @continue(! \App\Support\PermissionCatalog::canAssignRole(auth()->user(), $r))
                                         <option value="{{ $r->id }}" @selected(old('role_id') == $r->id)>{{ $r->name }}</option>
                                     @endforeach
                                 </select>

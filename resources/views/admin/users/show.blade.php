@@ -8,7 +8,7 @@
         'title' => $user->name,
         'subtitle' => 'مستخدم',
         'action' => '<a href="'.route('users.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل المستخدمين</a>'
-            .(can('users.update') ? '<a href="'.route('users.edit', $user).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>' : ''),
+            .(can('users.update') && (! $user->isAdmin() || auth()->user()->isAdmin()) ? '<a href="'.route('users.edit', $user).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>' : ''),
     ])
 @endsection
 @section('content')

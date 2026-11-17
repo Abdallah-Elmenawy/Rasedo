@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\AllUsers\User;
 use App\Models\PublicSettings\Permission;
 use App\Models\PublicSettings\Role;
+use Illuminate\Support\Collection;
 
 class PermissionCatalog
 {
@@ -81,10 +83,76 @@ class PermissionCatalog
             ['name' => 'عرض المستخدمين والأدوار والسجل', 'slug' => 'users.view', 'module' => 'users', 'action' => 'view'],
             ['name' => 'إضافة مستخدم أو دور', 'slug' => 'users.create', 'module' => 'users', 'action' => 'create'],
             ['name' => 'تعديل مستخدم أو دور', 'slug' => 'users.update', 'module' => 'users', 'action' => 'update'],
-            ['name' => 'حذف دور', 'slug' => 'users.delete', 'module' => 'users', 'action' => 'delete'],
+            ['name' => 'حذف مستخدم أو دور', 'slug' => 'users.delete', 'module' => 'users', 'action' => 'delete'],
 
             ['name' => 'إدارة إعدادات النظام', 'slug' => 'settings.update', 'module' => 'settings', 'action' => 'update'],
         ];
+    }
+
+    public static function actions(): array
+    {
+        return ['view' => 'عرض', 'create' => 'إضافة', 'update' => 'تعديل', 'delete' => 'حذف'];
+    }
+
+    public static function icons(): array
+    {
+        return [
+            'dashboard' => 'fe-home',
+            'customers' => 'fe-users',
+            'suppliers' => 'fe-truck',
+            'products' => 'fe-box',
+            'inventory' => 'fe-layers',
+            'pos' => 'fe-monitor',
+            'sales' => 'fe-shopping-cart',
+            'purchases' => 'fe-file-text',
+            'accounting' => 'fe-book-open',
+            'treasury' => 'fe-credit-card',
+            'expenses' => 'fe-minus-circle',
+            'reports' => 'fe-bar-chart-2',
+            'users' => 'fe-user-check',
+            'settings' => 'fe-settings',
+        ];
+    }
+
+    public static function grouped(Collection $permissions): Collection
+    {
+        $grouped = $permissions->groupBy('module');
+        $order = array_flip(array_keys(self::actions()));
+
+        return collect(self::modules())
+            ->map(fn ($label, $module) => ($grouped->get($module) ?? collect())
+                ->sortBy(fn ($permission) => $order[$permission->action] ?? 9)
+                ->values())
+            ->filter(fn ($items) => $items->isNotEmpty());
+    }
+
+    /**
+     * Non-admins may only grant or revoke permissions they hold themselves;
+     * anything else already assigned is kept untouched.
+     */
+    public static function restrictToActor(array $current, array $submitted, ?User $actor): array
+    {
+        $submitted = array_map('intval', $submitted);
+        if ($actor?->isAdmin()) {
+            return array_values(array_unique($submitted));
+        }
+
+        $grantable = $actor ? $actor->permissionIds() : [];
+        $kept = array_diff(array_map('intval', $current), $grantable);
+
+        return array_values(array_unique(array_merge($kept, array_intersect($submitted, $grantable))));
+    }
+
+    public static function canAssignRole(?User $actor, ?Role $role): bool
+    {
+        if (! $role || $actor?->isAdmin()) {
+            return true;
+        }
+        if (! $actor || $role->slug === 'admin') {
+            return false;
+        }
+
+        return $role->permissions()->pluck('permissions.id')->diff($actor->permissionIds())->isEmpty();
     }
 
     public static function sync(): void

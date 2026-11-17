@@ -6,6 +6,7 @@ use App\Models\AllUsers\User;
 use App\Models\PublicSettings\ActivityLog;
 use App\Models\PublicSettings\Role;
 use App\Support\GridQuery;
+use App\Support\PermissionCatalog;
 use App\Repositories\PublicSettings\Contracts\PermissionRepositoryInterface;
 use App\Repositories\PublicSettings\Contracts\RoleRepositoryInterface;
 use App\Repositories\PublicSettings\Contracts\UserRepositoryInterface;
@@ -39,10 +40,20 @@ class UserService
 
     public function editor(User $user): array
     {
+        $roles = $this->roles->ordered()->load('permissions');
+
         return [
             'user' => $this->users->loadEditor($user),
-            'roles' => $this->roles->ordered(),
-            'permissions' => $this->permissions->groupedByModule(),
+            'roles' => $roles,
+            'permissions' => PermissionCatalog::grouped($this->permissions->all()),
+            'modules' => PermissionCatalog::modules(),
+            'rolePermissions' => $roles->mapWithKeys(fn (Role $role) => [
+                $role->id => [
+                    'admin' => $role->slug === 'admin',
+                    'ids' => $role->permissions->pluck('id')->all(),
+                ],
+            ]),
+            'grantable' => auth()->user()?->permissionIds() ?? [],
         ];
     }
 
@@ -65,8 +76,20 @@ class UserService
             unset($data['password']);
         }
         $data['two_factor_enabled'] = $twoFactor;
+        $current = $user->isAdmin() ? [] : $user->permissionIds();
         $user = $this->users->update($user, $data);
-        $this->users->syncExtraPermissions($user, $permissionIds);
+        $user->unsetRelation('role');
+        if ($user->isAdmin()) {
+            $this->users->syncPermissionOverrides($user, [], []);
+        } else {
+            $effective = PermissionCatalog::restrictToActor($current, $permissionIds, auth()->user());
+            $roleIds = $user->role?->permissions()->pluck('permissions.id')->map(fn ($id) => (int) $id)->all() ?? [];
+            $this->users->syncPermissionOverrides(
+                $user,
+                array_values(array_diff($effective, $roleIds)),
+                array_values(array_diff($roleIds, $effective)),
+            );
+        }
         ActivityLog::record('users', 'update', "تعديل مستخدم {$user->name}", $user);
 
         return $user;

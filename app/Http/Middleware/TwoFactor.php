@@ -13,6 +13,14 @@ class TwoFactor
     {
         $user = Auth::user();
 
+        if ($user && ! $user->isActive()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['email' => 'تم إيقاف حسابك، تواصل مع الإدارة.']);
+        }
+
         if (Auth::check() && $user->code) {
             if (! $request->is('verify', 'verify/*')) {
                 return redirect()->route('verify.index');

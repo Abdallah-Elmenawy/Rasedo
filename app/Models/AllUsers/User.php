@@ -41,9 +41,23 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    /**
+     * Per-user overrides on top of the role: granted=true adds a permission,
+     * granted=false revokes one the role would otherwise give.
+     */
+    public function permissionOverrides(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class)->withPivot('granted');
+    }
+
     public function extraPermissions(): BelongsToMany
     {
-        return $this->belongsToMany(Permission::class);
+        return $this->permissionOverrides()->wherePivot('granted', true);
+    }
+
+    public function revokedPermissions(): BelongsToMany
+    {
+        return $this->permissionOverrides()->wherePivot('granted', false);
     }
 
     public function isAdmin(): bool
@@ -56,11 +70,40 @@ class User extends Authenticatable
         if ($this->isAdmin()) {
             return true;
         }
-        if ($this->role?->permissions()->where('slug', $slug)->exists()) {
-            return true;
+
+        return in_array($slug, $this->permissionSlugs(), true);
+    }
+
+    public function isActive(): bool
+    {
+        return ($this->status ?? 'active') === 'active';
+    }
+
+    public function permissionSlugs(): array
+    {
+        return $this->grantedPermissions()->pluck('slug')->all();
+    }
+
+    public function permissionIds(): array
+    {
+        if ($this->isAdmin()) {
+            return Permission::query()->pluck('id')->all();
         }
 
-        return $this->extraPermissions()->where('slug', $slug)->exists();
+        return $this->grantedPermissions()->pluck('id')->all();
+    }
+
+    private function grantedPermissions()
+    {
+        $this->loadMissing(['role.permissions', 'permissionOverrides']);
+        $overrides = $this->permissionOverrides;
+        $revoked = $overrides->filter(fn ($permission) => ! $permission->pivot->granted)->pluck('id')->all();
+
+        return ($this->role?->permissions ?? collect())
+            ->concat($overrides->filter(fn ($permission) => (bool) $permission->pivot->granted))
+            ->reject(fn ($permission) => in_array($permission->id, $revoked, true))
+            ->unique('id')
+            ->values();
     }
 
     public function generateCode(): void
