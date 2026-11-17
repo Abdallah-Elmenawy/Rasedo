@@ -1,6 +1,6 @@
-# Billora
+# Rasedo
 
-Billora — Invoicing and Accounting Management System
+Rasedo — Invoicing and Accounting Management System
 
 ## Admin account
 
