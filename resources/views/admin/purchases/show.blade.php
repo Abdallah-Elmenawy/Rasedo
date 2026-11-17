@@ -3,88 +3,91 @@
     @include('admin.partials.page-header', [
         'title' => 'فاتورة '.$invoice->number,
         'subtitle' => 'فواتير المشتريات',
-        'action' => '<a href="'.route('purchases.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل الفواتير</a>'
-                     .(in_array($invoice->status, ['confirmed','partial']) && can('purchases.update') ? '<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#payModal"><i class="fe fe-upload ml-1"></i> صرف للمورد</button>' : '')
-                     .'<a class="btn btn-primary" href="'.route('purchases.print', $invoice).'" target="_blank"><i class="fe fe-printer ml-1"></i> طباعة</a>',
+        'action' => '<a href="'.route('purchases.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل الفواتير</a>',
+        'exports' => [
+            ['sheet' => 'purchase-invoice-items', 'params' => ['purchase' => $invoice->id]],
+        ],
     ])
 @endsection
 @section('content')
-<div class="row">
-    <div class="col-md-3 col-sm-6"><div class="card report-stat stat-blue"><div class="card-body"><span>المورد</span><h3 class="tx-18">{{ $invoice->supplier->name ?? '-' }}</h3><small class="text-muted">{{ optional($invoice->invoice_date)->format('Y-m-d') }}</small></div></div></div>
-    <div class="col-md-3 col-sm-6"><div class="card report-stat stat-purple"><div class="card-body"><span>الإجمالي</span><h3>{{ money($invoice->total) }}</h3></div></div></div>
-    <div class="col-md-3 col-sm-6"><div class="card report-stat stat-green"><div class="card-body"><span>المدفوع</span><h3>{{ money($invoice->paid) }}</h3></div></div></div>
-    <div class="col-md-3 col-sm-6"><div class="card report-stat {{ $invoice->remaining > 0 ? 'stat-red' : 'stat-teal' }}"><div class="card-body"><span>المتبقي</span><h3>{{ money($invoice->remaining) }}</h3></div></div></div>
+<x-invoice-sheet
+    :invoice="$invoice"
+    :party="$invoice->supplier"
+    party-label="المورد"
+    code-label="كود المورد"
+>
+    <x-slot:actions>
+        @if(in_array($invoice->status, ['confirmed','partial']) && can('purchases.update'))
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#payModal">صرف للمورد</button>
+        @endif
+        @if($invoice->status === 'draft' && can('purchases.update'))
+            <form method="post" action="{{ route('purchases.confirm', $invoice) }}">@csrf<button class="btn btn-success">تأكيد</button></form>
+            <a class="btn btn-light" href="{{ route('purchases.edit', $invoice) }}">تعديل</a>
+            <form method="post" action="{{ route('purchases.cancel', $invoice) }}" data-confirm="هل أنت متأكد من إلغاء هذه الفاتورة؟" data-confirm-title="إلغاء الفاتورة" data-confirm-ok="نعم، إلغاء" data-confirm-icon="fe fe-x-circle">@csrf<button class="btn btn-danger">إلغاء</button></form>
+        @endif
+        @if(can('purchases.delete'))
+            <form method="post" action="{{ route('purchases.destroy', $invoice) }}" data-confirm="هل أنت متأكد أنك تريد استكمال عملية الحذف؟" data-confirm-title="هل تريد الاستمرار؟" data-confirm-ok="تأكيد">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger"><i class="fe fe-trash-2"></i><span>حذف</span></button>
+            </form>
+        @endif
+        <button type="button" class="btn btn-primary inv-print" data-print-url="{{ route('purchases.print', $invoice) }}"><i class="fe fe-printer"></i><span>طباعة</span></button>
+    </x-slot:actions>
+</x-invoice-sheet>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="mb-3">مرفق الفاتورة</h5>
+        @if($invoice->attachmentUrl())
+            @if($invoice->attachmentIsImage())
+                <button type="button" class="btn p-0 border-0 bg-transparent" data-toggle="modal" data-target="#attachmentModal" aria-label="عرض مرفق {{ $invoice->number }}">
+                    <img src="{{ $invoice->attachmentUrl() }}" alt="مرفق {{ $invoice->number }}" style="max-height:180px;border-radius:8px;border:1px solid #E8EDF5">
+                </button>
+            @else
+                <a class="btn btn-outline-primary" href="{{ $invoice->attachmentUrl() }}" target="_blank" rel="noopener">
+                    <i class="fe fe-file ml-1"></i> {{ $invoice->number }}
+                </a>
+            @endif
+        @else
+            <p class="text-muted mb-3">لا يوجد مرفق لهذه الفاتورة.</p>
+        @endif
+        @if(can('purchases.update'))
+            <form method="post" action="{{ route('purchases.attachment', $invoice) }}" enctype="multipart/form-data" class="mt-3">
+                @csrf
+                <div class="form-group mb-2">
+                    <label for="show_purchase_attachment">{{ $invoice->attachmentUrl() ? 'استبدال المرفق' : 'رفع مرفق' }}</label>
+                    <input id="show_purchase_attachment" type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                    <small class="text-muted d-block mt-1">يتحفظ باسم {{ $invoice->number }}.</small>
+                    @error('attachment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
+                @if($invoice->attachmentUrl())
+                    <label class="d-block mb-2">
+                        <input type="checkbox" name="remove_attachment" value="1" @checked(old('remove_attachment'))>
+                        حذف المرفق
+                    </label>
+                @endif
+                <button class="btn btn-primary" type="submit">حفظ المرفق</button>
+            </form>
+        @endif
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title"><i class="fe fe-list"></i> بنود الفاتورة</h4>
-                <span class="badge badge-{{ invoice_status_badge($invoice->status) }}">{{ invoice_status_label($invoice->status) }}</span>
+@if($invoice->attachmentUrl() && $invoice->attachmentIsImage())
+<div class="modal fade" id="attachmentModal" tabindex="-1" role="dialog" aria-labelledby="attachmentModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attachmentModalTitle">مرفق {{ $invoice->number }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover mb-0">
-                    <thead><tr><th class="col-serial">#</th><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-                    <tbody>
-                    @foreach($invoice->items as $item)
-                        <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
-                            <td class="cell-strong">{{ $item->product->name ?? '-' }}</td>
-                            <td>{{ $item->qty }}</td>
-                            <td class="cell-money">{{ money($item->unit_price) }}</td>
-                            <td class="cell-money">{{ money($item->total) }}</td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+            <div class="modal-body text-center p-3">
+                <img src="{{ $invoice->attachmentUrl() }}" alt="مرفق {{ $invoice->number }}" style="max-width:100%;max-height:75vh;border-radius:8px">
             </div>
-            <div class="card-footer table-card-footer">
-                <div class="report-total flex-grow-1"><span>الإجمالي</span><strong>{{ money($invoice->total) }}</strong></div>
-                @if($invoice->status==='draft')
-                    <div class="btn-actions">
-                        @if(can('purchases.update'))
-                        <form class="d-inline" method="post" action="{{ route('purchases.confirm', $invoice) }}">@csrf<button class="btn btn-success"><i class="fe fe-check ml-1"></i> تأكيد</button></form>
-                        <x-edit-link :href="route('purchases.edit', $invoice)" />
-                        <form class="d-inline" method="post" action="{{ route('purchases.cancel', $invoice) }}" data-confirm="هل أنت متأكد من إلغاء هذه الفاتورة؟" data-confirm-title="إلغاء الفاتورة" data-confirm-ok="نعم، إلغاء" data-confirm-icon="fe fe-x-circle">@csrf<button class="btn btn-icon-action btn-icon-delete" title="إلغاء"><i class="fe fe-x"></i><span class="sr-only">إلغاء</span></button></form>
-                        @endif
-                        <x-print-link :href="route('purchases.print', $invoice)" />
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title"><i class="fe fe-credit-card"></i> المدفوعات</h4>
-                <span class="count-badge">{{ $invoice->payments->count() }}</span>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead><tr><th class="col-serial">#</th><th>المبلغ</th><th>الخزينة</th><th>التاريخ</th></tr></thead>
-                    <tbody>
-                    @forelse($invoice->payments as $p)
-                        <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
-                            <td class="cell-money is-neg">{{ money($p->amount) }}</td>
-                            <td>{{ $p->treasury->name ?? '-' }}</td>
-                            <td class="text-muted">{{ optional($p->transacted_at)->format('Y-m-d') }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="cell-empty text-center text-muted"><i class="fe fe-credit-card"></i>لا توجد مدفوعات</td></tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if(in_array($invoice->status, ['confirmed','partial']) && can('purchases.update'))
-                <div class="card-footer text-center">
-                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#payModal"><i class="fe fe-upload ml-1"></i> صرف للمورد</button>
-                </div>
-            @endif
         </div>
     </div>
 </div>
+@endif
 
 @if(in_array($invoice->status, ['confirmed','partial']) && can('purchases.update'))
 <div class="modal fade" id="payModal" tabindex="-1" role="dialog" aria-labelledby="payModalTitle" aria-hidden="true">

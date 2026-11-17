@@ -42,16 +42,37 @@
             </div>
         @endforeach
         <div class="col-xl-12 col-lg-12">
-            <div class="card">
-                <div class="card-header"><h4 class="card-title mb-0">حركة 7 أيام</h4></div>
-                <div class="card-body"><canvas id="dashChart" height="110"></canvas></div>
+            <div class="card trend-card">
+                <div class="trend-head">
+                    <div class="trend-title">
+                        <span class="trend-icon"><i class="fe fe-bar-chart-2"></i></span>
+                        <div>
+                            <h4>حركة الحساب</h4>
+                            <p>متابعة الحركة حسب الفترة الزمنية</p>
+                        </div>
+                    </div>
+                    <div class="trend-periods" role="tablist">
+                        <button type="button" data-period="day">يومي</button>
+                        <button type="button" class="is-active" data-period="week">أسبوعي</button>
+                        <button type="button" data-period="month">شهري</button>
+                        <button type="button" data-period="year">سنوي</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="dash-chart">
+                        <canvas id="dashChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title mb-0"><i class="fe fe-shopping-cart"></i> آخر فواتير المبيعات</h4>
-                    <a href="{{ route('sales.index') }}" class="count-badge">عرض الكل</a>
+                    <div class="card-header-side">
+                        @if(can('sales.view'))<x-export-excel sheet="sales" />@endif
+                        <a href="{{ route('sales.index') }}" class="count-badge">عرض الكل</a>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -68,6 +89,9 @@
                                     <div class="btn-actions">
                                         <x-view-link :href="route('sales.show', $inv)" title="عرض الفاتورة" />
                                         <x-print-link :href="route('sales.print', $inv)" />
+                                        @if(can('sales.delete'))
+                                            <x-delete-form :action="route('sales.destroy', $inv)" message="هل أنت متأكد من حذف فاتورة {{ $inv->number }}؟ لا يمكن التراجع عن هذا الإجراء." title="حذف الفاتورة" />
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -77,13 +101,18 @@
                         </tbody>
                     </table>
                 </div>
+                @php $latestSalesPage = paginate_collection($latestSales, 15, 'dash_sales'); @endphp
+                <x-table-pager :items="$latestSalesPage" />
             </div>
         </div>
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title mb-0"><i class="fe fe-credit-card"></i> آخر التحصيلات والمدفوعات</h4>
-                    <a href="{{ route('treasury.index') }}" class="count-badge">الخزينة</a>
+                    <div class="card-header-side">
+                        @if(can('treasury.view'))<x-export-excel sheet="treasury-activity" />@endif
+                        <a href="{{ route('treasury.index') }}" class="count-badge">الخزينة</a>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -103,6 +132,8 @@
                         </tbody>
                     </table>
                 </div>
+                @php $latestPaymentsPage = paginate_collection($latestPayments, 15, 'dash_payments'); @endphp
+                <x-table-pager :items="$latestPaymentsPage" />
             </div>
         </div>
         <div class="col-xl-6">
@@ -111,7 +142,7 @@
                 <div class="card-body">
                     <ul class="list-unstyled mb-0">
                         @forelse($lowStock as $p)
-                            <li class="mb-2 d-flex justify-content-between"><span>{{ $p->name }}</span><span class="text-danger">{{ $p->current_stock }} / {{ $p->min_stock }}</span></li>
+                            <li class="mb-2 d-flex justify-content-between"><span>{{ $p->name }}</span><span class="text-danger">{{ qty($p->current_stock) }} / {{ qty($p->min_stock) }}</span></li>
                         @empty
                             <li class="text-muted">لا توجد تنبيهات</li>
                         @endforelse
@@ -156,19 +187,83 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 const ctx = document.getElementById('dashChart');
-if (ctx) {
-    new Chart(ctx, {
+const packs = @json($charts);
+const currency = @json($currency);
+const colors = [
+    {label: 'مبيعات', key: 'sales', color: '#1E4E9B'},
+    {label: 'مشتريات', key: 'purchases', color: '#EC4899'},
+    {label: 'مصروفات', key: 'expenses', color: '#10B981'},
+    {label: 'إيرادات', key: 'revenues', color: '#F97316'},
+];
+if (ctx && packs) {
+    const dataset = (pack, item) => ({
+        label: item.label,
+        data: pack[item.key],
+        borderColor: item.color,
+        backgroundColor: item.color,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: item.color,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2.4,
+        tension: 0.35,
+    });
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: @json($chartLabels),
-            datasets: [
-                {label: 'مبيعات', data: @json($chartSales), borderColor: '#3B82F6', tension: .3},
-                {label: 'مشتريات', data: @json($chartPurchases), borderColor: '#EC4899', tension: .3},
-                {label: 'مصروفات', data: @json($chartExpenses), borderColor: '#10B981', tension: .3},
-                {label: 'إيرادات', data: @json($chartRevenues), borderColor: '#F97316', tension: .3},
-            ]
+            labels: packs.week.labels,
+            datasets: colors.map((item) => dataset(packs.week, item)),
         },
-        options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {mode: 'index', intersect: false},
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    rtl: true,
+                    labels: {usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, padding: 16, color: '#2D3E50', font: {family: 'Cairo', size: 12}},
+                },
+                tooltip: {
+                    rtl: true,
+                    backgroundColor: '#1F2937',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {family: 'Cairo', size: 13},
+                    bodyFont: {family: 'Cairo', size: 12},
+                    callbacks: {
+                        label: (row) => ' ' + row.dataset.label + ': ' + Number(row.parsed.y || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + currency,
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    grid: {color: '#EEF3FB'},
+                    ticks: {color: '#94A3B8', maxRotation: 0, font: {family: 'Cairo', size: 11}},
+                },
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 20,
+                    grid: {color: '#EEF3FB'},
+                    ticks: {color: '#94A3B8', font: {family: 'Cairo', size: 11}},
+                    title: {display: true, text: 'المبلغ (' + currency + ')', color: '#64748B', font: {family: 'Cairo', size: 12}},
+                },
+            },
+        },
+    });
+    document.querySelectorAll('.trend-periods button').forEach((button) => {
+        button.addEventListener('click', () => {
+            const pack = packs[button.dataset.period];
+            if (!pack) return;
+            document.querySelectorAll('.trend-periods button').forEach((item) => item.classList.remove('is-active'));
+            button.classList.add('is-active');
+            chart.data.labels = pack.labels;
+            chart.data.datasets.forEach((row, index) => { row.data = pack[colors[index].key]; });
+            chart.update();
+        });
     });
 }
 </script>

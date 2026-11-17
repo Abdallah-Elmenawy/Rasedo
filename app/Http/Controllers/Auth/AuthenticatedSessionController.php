@@ -28,8 +28,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false))
-            ->with('success', 'تم تسجيل الدخول بنجاح');
+        $response = redirect()->intended(home_route());
+        if (! $request->user()->two_factor_enabled) {
+            $response->with('success', 'تم تسجيل الدخول بنجاح');
+        }
+
+        return $response;
     }
 
     /**

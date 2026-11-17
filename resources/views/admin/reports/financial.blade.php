@@ -3,8 +3,8 @@
     @include('admin.partials.page-header', [
         'title' => 'التقارير المالية',
         'subtitle' => 'التقارير',
-        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>
-                     <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>',
+        'export' => 'reports-financial',
     ])
 @endsection
 @section('content')
@@ -19,6 +19,12 @@
     $order = array_keys($typeLabels);
     $accounts = $accounts->sortBy(fn ($rows, $type) => array_search($type, $order));
 @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="الكود" name="code" placeholder="أدخل الكود..." />
+    <x-filter-field label="الحساب" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+</x-filter-drawer>
 
 <div class="row">
     @foreach($accounts as $type => $rows)
@@ -36,7 +42,7 @@
 </div>
 
 @foreach($accounts as $type => $rows)
-    @php [$label, $icon] = $typeLabels[$type] ?? [$type, 'fe-file-text']; @endphp
+    @php [$label, $icon] = $typeLabels[$type] ?? [$type, 'fe-file-text']; $pageRows = paginate_collection($rows, 15, 'fin_'.$type); @endphp
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <h4 class="card-title mb-0"><i class="fe {{ $icon }} ml-1"></i> {{ $label }}</h4>
@@ -46,9 +52,9 @@
             <table class="table table-bordered table-hover mb-0">
                 <thead><tr><th class="col-serial">#</th><th>الكود</th><th>الحساب</th><th class="text-left">الرصيد</th></tr></thead>
                 <tbody>
-                @foreach($rows as $a)
+                @foreach($pageRows as $a)
                     <tr>
-                        <td class="col-serial">{{ $loop->iteration }}</td>
+                        <td class="col-serial">{{ row_no($pageRows, $loop) }}</td>
                         <td>{{ $a->code }}</td>
                         <td>{{ $a->name }}</td>
                         <td class="text-left">{{ money($a->current_balance) }}</td>
@@ -57,6 +63,7 @@
                 </tbody>
             </table>
         </div>
+        <x-table-pager :items="$pageRows" />
         <div class="card-footer report-total">
             <span>إجمالي {{ $label }}</span>
             <strong>{{ money($rows->sum('current_balance')) }}</strong>

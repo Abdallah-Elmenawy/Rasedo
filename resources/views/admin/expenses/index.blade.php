@@ -3,6 +3,7 @@
     @include('admin.partials.page-header', [
         'title' => 'المصروفات والإيرادات',
         'action' => can('expenses.create') ? '<button type="button" class="btn btn-light ml-2" data-toggle="modal" data-target="#addCategoryModal"><i class="fe fe-tag ml-1"></i> إضافة تصنيف</button><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addEntryModal"><i class="fe fe-plus ml-1"></i> إضافة عملية</button>' : '',
+        'export' => 'expenses',
     ])
 @endsection
 @section('content')
@@ -10,6 +11,16 @@
     $openAddModal = old('_form') === 'entry';
     $openCategoryModal = old('_form') === 'category';
 @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="الرقم" name="number" placeholder="أدخل الرقم..." />
+    <x-filter-field label="النوع" name="type" type="select" :options="$filters['types']" />
+    <x-filter-field label="التصنيف" name="money_category_id" type="select" :options="$filters['categories']" />
+    <x-filter-field label="الخزينة" name="treasury_id" type="select" :options="$filters['treasuries']" />
+    <x-filter-field label="المبلغ" name="amount" type="number" placeholder="أدخل المبلغ..." />
+    <x-filter-field label="التاريخ" name="entry_date" type="date" />
+    <x-filter-field label="تاريخ التسجيل" name="created_on" type="date" />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -44,6 +55,7 @@
                     <td class="text-muted">{{ optional($e->created_at)->format('H:i Y-m-d') }}</td>
                     <td class="col-actions">
                         <div class="btn-actions">
+                                <x-view-link :href="route('expenses.show', $e)" title="عرض العملية" />
                                 @if(can('expenses.update'))<x-edit-link :href="route('expenses.edit', $e)" />@endif
                                 @if(can('expenses.delete'))<x-delete-form :action="route('expenses.destroy', $e)" message="هل أنت متأكد من حذف هذه العملية؟ سيتم التراجع عن تأثيرها على الخزينة." title="حذف العملية" />@endif
                         </div>
@@ -55,12 +67,7 @@
             </tbody>
         </table>
     </div>
-    @if($entries->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $entries->firstItem() }} - {{ $entries->lastItem() }} من {{ $entries->total() }}</span>
-            {{ $entries->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$entries" />
 </div>
 
 <div class="modal fade" id="addEntryModal" tabindex="-1" role="dialog" aria-labelledby="addEntryModalTitle" aria-hidden="true">

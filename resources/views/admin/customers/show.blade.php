@@ -4,8 +4,11 @@
         'title' => $customer->name,
         'subtitle' => $customer->code,
         'action' => '<a href="'.route('customers.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل العملاء</a>
-                     <a href="'.route('customers.edit', $customer).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>
-                     <button type="button" class="btn btn-light" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+                     <a href="'.route('customers.edit', $customer).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>',
+        'exports' => [
+            ['sheet' => 'customer-invoices', 'params' => ['customer' => $customer->id], 'label' => 'Excel الفواتير'],
+            ['sheet' => 'customer-payments', 'params' => ['customer' => $customer->id], 'label' => 'Excel المدفوعات'],
+        ],
     ])
 @endsection
 @section('content')
@@ -65,17 +68,18 @@
     </div>
     <div class="col-md-8">
         <div class="card">
+            @php $customerInvoices = paginate_collection($customer->invoices, 15, 'invoices_page'); @endphp
             <div class="card-header">
                 <h4 class="card-title"><i class="fe fe-file-text"></i> الفواتير</h4>
-                <span class="count-badge">{{ $customer->invoices->count() }} فاتورة</span>
+                <span class="count-badge">{{ $customerInvoices->total() }} فاتورة</span>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover mb-0">
                     <thead><tr><th class="col-serial">#</th><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th>المتبقي</th><th>الحالة</th><th class="col-actions">الإجراءات</th></tr></thead>
                     <tbody>
-                    @forelse($customer->invoices as $inv)
+                    @forelse($customerInvoices as $inv)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($customerInvoices, $loop) }}</td>
                             <td class="cell-strong"><a href="{{ route('sales.show', $inv) }}">{{ $inv->number }}</a></td>
                             <td>{{ optional($inv->invoice_date)->format('Y-m-d') }}</td>
                             <td class="cell-money">{{ money($inv->total) }}</td>
@@ -85,6 +89,9 @@
                                 <div class="btn-actions">
                                     <x-view-link :href="route('sales.show', $inv)" title="عرض الفاتورة" />
                                     <x-print-link :href="route('sales.print', $inv)" />
+                                    @if(can('sales.delete'))
+                                        <x-delete-form :action="route('sales.destroy', $inv)" message="هل أنت متأكد من حذف فاتورة {{ $inv->number }}؟ لا يمكن التراجع عن هذا الإجراء." title="حذف الفاتورة" />
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -94,19 +101,21 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$customerInvoices" />
         </div>
         <div class="card">
+            @php $customerPayments = paginate_collection($customer->payments, 15, 'payments_page'); @endphp
             <div class="card-header">
                 <h4 class="card-title"><i class="fe fe-credit-card"></i> المدفوعات</h4>
-                <span class="count-badge">{{ $customer->payments->count() }} عملية</span>
+                <span class="count-badge">{{ $customerPayments->total() }} عملية</span>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover mb-0">
                     <thead><tr><th class="col-serial">#</th><th>المبلغ</th><th>التاريخ</th><th>النوع</th></tr></thead>
                     <tbody>
-                    @forelse($customer->payments as $p)
+                    @forelse($customerPayments as $p)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($customerPayments, $loop) }}</td>
                             <td class="cell-money is-pos">{{ money($p->amount) }}</td>
                             <td>{{ optional($p->transacted_at)->format('Y-m-d') }}</td>
                             <td><span class="badge badge-{{ $p->type === 'receipt' ? 'success' : 'warning' }}">{{ $p->type === 'receipt' ? 'تحصيل' : ($p->type === 'payment' ? 'صرف' : $p->type) }}</span></td>
@@ -117,6 +126,7 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$customerPayments" />
         </div>
     </div>
 </div>

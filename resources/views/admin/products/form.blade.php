@@ -40,6 +40,10 @@
                     <input id="unit" name="unit" class="form-control" value="{{ old('unit', $product->unit ?? 'قطعة') }}">
                 </div>
                 <div class="col-md-4 form-group">
+                    <label for="pieces_per_box">عدد القطع داخل العلبة</label>
+                    <input id="pieces_per_box" name="pieces_per_box" type="number" min="1" step="1" class="form-control" value="{{ old('pieces_per_box', $product->pieces_per_box) }}" placeholder="مثال: 12">
+                </div>
+                <div class="col-md-4 form-group">
                     <label for="cost_price">سعر التكلفة</label>
                     <input id="cost_price" name="cost_price" type="number" step="0.01" class="form-control @error('cost_price') is-invalid @enderror" value="{{ old('cost_price', $product->cost_price) }}">
                     @error('cost_price')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -51,7 +55,7 @@
                 </div>
                 <div class="col-md-4 form-group">
                     <label for="min_stock">الحد الأدنى</label>
-                    <input id="min_stock" name="min_stock" type="number" step="0.001" class="form-control" value="{{ old('min_stock', $product->min_stock) }}">
+                    <input id="min_stock" name="min_stock" type="number" step="0.001" class="form-control" value="{{ old('min_stock', qty($product->min_stock)) }}">
                 </div>
                 <div class="col-md-4 form-group">
                     <label for="current_stock">المخزون الحالي</label>

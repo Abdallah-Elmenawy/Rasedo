@@ -3,6 +3,7 @@
     @include('admin.partials.page-header', [
         'title' => 'المستخدمون',
         'action' => can('users.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addUserModal"><i class="fe fe-user-plus ml-1"></i> إضافة مستخدم</button>' : '',
+        'export' => 'users',
     ])
 @endsection
 @section('content')
@@ -12,6 +13,14 @@
 @endphp
 
 @php $statusBadges = ['active' => 'success', 'disabled' => 'secondary', 'suspended' => 'danger']; @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="الاسم" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="البريد" name="email" placeholder="أدخل البريد..." />
+    <x-filter-field label="الدور" name="role_id" type="select" :options="$filters['roles']" />
+    <x-filter-field label="الحالة" name="status" type="select" :options="$filters['statuses']" />
+</x-filter-drawer>
+
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-users"></i> المستخدمون</h4>
@@ -22,6 +31,7 @@
             <thead>
                 <tr>
                     <th class="col-serial">#</th>
+                    <th class="col-user-photo">الصورة</th>
                     <th>الاسم</th>
                     <th>البريد</th>
                     <th>الدور</th>
@@ -33,34 +43,34 @@
             @forelse($users as $u)
                 <tr>
                     <td class="col-serial">{{ row_no($users, $loop) }}</td>
+                    <td class="col-user-photo"><img src="{{ user_avatar($u) }}" alt="" class="user-photo"></td>
                     <td class="cell-strong">{{ $u->name }}</td>
                     <td dir="ltr">{{ $u->email }}</td>
                     <td>{{ $u->role->name ?? '-' }}</td>
                     <td><span class="badge badge-{{ $statusBadges[$u->status] ?? 'light' }}">{{ $statusLabels[$u->status] ?? $u->status }}</span></td>
                     <td class="col-actions">
                         <div class="btn-actions">
+                                <x-view-link :href="route('users.show', $u)" title="عرض المستخدم" />
                                 @if(can('users.update'))<x-edit-link :href="route('users.edit', $u)" />@endif
+                                @if(can('users.delete') && $u->id !== auth()->id())
+                                    <x-delete-form :action="route('users.destroy', $u)" message="هل أنت متأكد من حذف المستخدم {{ $u->name }}؟" title="حذف المستخدم" />
+                                @endif
                         </div>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="cell-empty text-center text-muted"><i class="fe fe-users"></i>لا يوجد مستخدمون</td></tr>
+                <tr><td colspan="7" class="cell-empty text-center text-muted"><i class="fe fe-users"></i>لا يوجد مستخدمون</td></tr>
             @endforelse
             </tbody>
         </table>
     </div>
-    @if($users->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $users->firstItem() }} - {{ $users->lastItem() }} من {{ $users->total() }}</span>
-            {{ $users->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$users" />
 </div>
 
 <div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content border-0 shadow">
-            <form method="post" action="{{ route('users.store') }}">
+            <form method="post" action="{{ route('users.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title" id="addUserModalTitle">إضافة مستخدم</h5>
@@ -116,6 +126,9 @@
                                 <option value="disabled" @selected(old('status') === 'disabled')>معطّل</option>
                                 <option value="suspended" @selected(old('status') === 'suspended')>موقوف</option>
                             </select>
+                        </div>
+                        <div class="col-md-12 form-group">
+                            @include('admin.users._avatar-field')
                         </div>
                         <div class="col-md-6 form-group d-flex align-items-end">
                             <label class="mb-3">

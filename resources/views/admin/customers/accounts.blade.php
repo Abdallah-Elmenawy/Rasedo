@@ -2,10 +2,16 @@
 @section('page-header')
     @include('admin.partials.page-header', [
         'title' => 'حسابات العملاء',
-        'action' => '<button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'export' => 'customer-accounts',
     ])
 @endsection
 @section('content')
+<x-filter-drawer>
+    <x-filter-field label="العميل" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="المبيعات" name="sales" type="number" placeholder="أدخل المبيعات..." />
+    <x-filter-field label="المدفوع" name="paid" type="number" placeholder="أدخل المدفوع..." />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+</x-filter-drawer>
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-users"></i> حسابات العملاء</h4>
@@ -35,6 +41,7 @@
                         <div class="btn-actions">
                             <x-view-link :href="route('customers.show', $c)" title="كشف الحساب" />
                             <x-view-link :href="route('sales.index', ['customer_id' => $c->id])" title="فواتير العميل" icon="fe-file-text" class="btn-icon-print" />
+                            @if(can('customers.delete'))<x-delete-form :action="route('customers.destroy', $c)" message="هل أنت متأكد من حذف هذا العميل؟ سيتم إزالة بياناته من النظام." title="حذف العميل" />@endif
                         </div>
                     </td>
                 </tr>
@@ -44,11 +51,6 @@
             </tbody>
         </table>
     </div>
-    @if($customers->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $customers->firstItem() }} - {{ $customers->lastItem() }} من {{ $customers->total() }}</span>
-            {{ $customers->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$customers" />
 </div>
 @endsection

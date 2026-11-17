@@ -3,22 +3,16 @@
     @include('admin.partials.page-header', [
         'title' => 'القيود المحاسبية',
         'action' => can('accounting.create') ? '<a href="'.route('journals.create').'" class="btn btn-primary"><i class="fe fe-plus ml-1"></i> قيد جديد</a>' : '',
+        'export' => 'journals',
     ])
 @endsection
 @section('content')
-<div class="card filter-card mb-3">
-    <div class="card-body">
-        <form method="get" class="row align-items-end">
-            <div class="col-md-10 form-group">
-                <label>بحث</label>
-                <input name="q" value="{{ request('q') }}" class="form-control" placeholder="ابحث برقم القيد أو الوصف...">
-            </div>
-            <div class="col-md-2 form-group">
-                <button class="btn btn-primary btn-block"><i class="fe fe-search ml-1"></i> بحث</button>
-            </div>
-        </form>
-    </div>
-</div>
+<x-filter-drawer>
+    <x-filter-field label="الرقم" name="number" placeholder="أدخل رقم القيد..." />
+    <x-filter-field label="التاريخ" name="journal_date" type="date" />
+    <x-filter-field label="الوصف" name="description" placeholder="أدخل الوصف..." />
+    <x-filter-field label="المستخدم" name="created_by" type="select" :options="$filters['creators']" />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -57,11 +51,6 @@
             </tbody>
         </table>
     </div>
-    @if($journals->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $journals->firstItem() }} - {{ $journals->lastItem() }} من {{ $journals->total() }}</span>
-            {{ $journals->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$journals" />
 </div>
 @endsection

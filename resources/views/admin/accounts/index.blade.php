@@ -3,6 +3,7 @@
     @include('admin.partials.page-header', [
         'title' => 'دليل الحسابات',
         'action' => can('accounting.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addAccountModal"><i class="fe fe-plus ml-1"></i> حساب جديد</button>' : '',
+        'export' => 'accounts',
     ])
 @endsection
 @section('content')
@@ -17,10 +18,19 @@
     ];
 @endphp
 
+<x-filter-drawer>
+    <x-filter-field label="الكود" name="code" placeholder="أدخل الكود..." />
+    <x-filter-field label="الاسم" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="النوع" name="type" type="select" :options="$filters['types']" />
+    <x-filter-field label="الحساب الأب" name="parent_id" type="select" :options="$filters['parents']" />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+    <x-filter-field label="الحالة" name="is_active" type="select" :options="$filters['states']" />
+</x-filter-drawer>
+
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-layers"></i> الحسابات</h4>
-        <span class="count-badge">{{ $accounts->count() }} حساب</span>
+        <span class="count-badge">{{ $accounts->total() }} حساب</span>
     </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover mb-0">
@@ -65,6 +75,9 @@
                                     <span class="sr-only">حفظ التعديل</span>
                                 </button>
                                 @endif
+                                @if(can('accounting.delete'))
+                                    <x-delete-form :action="route('accounts.destroy', $a)" button-title="حذف الحساب" />
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -74,6 +87,7 @@
                 </tbody>
             </table>
         </div>
+        <x-table-pager :items="$accounts" />
 </div>
 
 <div class="modal fade" id="addAccountModal" tabindex="-1" role="dialog" aria-labelledby="addAccountModalTitle" aria-hidden="true">

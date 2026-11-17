@@ -44,9 +44,12 @@
 <div class="user-edit-page">
     <div class="card">
         <div class="card-body p-4 p-md-5">
-            <form method="post" action="{{ route('users.update', $user) }}">
+            <form method="post" action="{{ route('users.update', $user) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
+                <div class="mb-4">
+                    @include('admin.users._avatar-field', ['user' => $user])
+                </div>
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label for="name">الاسم</label>

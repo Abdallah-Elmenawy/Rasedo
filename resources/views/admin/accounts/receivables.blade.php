@@ -3,14 +3,20 @@
     @include('admin.partials.page-header', [
         'title' => 'الحسابات المدينة',
         'subtitle' => 'أرصدة العملاء المستحقة',
-        'action' => '<button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'export' => 'receivables',
     ])
 @endsection
 @section('content')
+<x-filter-drawer>
+    <x-filter-field label="الكود" name="code" placeholder="أدخل الكود..." />
+    <x-filter-field label="العميل" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="الموبايل" name="phone" placeholder="أدخل الموبايل..." />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+</x-filter-drawer>
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-users"></i> العملاء</h4>
-        <span class="count-badge">{{ $customers->count() }} عميل</span>
+        <span class="count-badge">{{ $customers->total() }} عميل</span>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
@@ -27,6 +33,7 @@
                         <div class="btn-actions">
                             <x-view-link :href="route('customers.show', $c)" title="كشف الحساب" />
                             @if(can('customers.update'))<x-edit-link :href="route('customers.edit', $c)" />@endif
+                            @if(can('customers.delete'))<x-delete-form :action="route('customers.destroy', $c)" message="هل أنت متأكد من حذف هذا العميل؟ سيتم إزالة بياناته من النظام." title="حذف العميل" />@endif
                         </div>
                     </td>
                 </tr>
@@ -36,9 +43,10 @@
             </tbody>
         </table>
     </div>
+    <x-table-pager :items="$customers" />
     <div class="card-footer report-total">
         <span>إجمالي الأرصدة المدينة</span>
-        <strong>{{ money($customers->sum('current_balance')) }}</strong>
+        <strong>{{ money($balanceTotal) }}</strong>
     </div>
 </div>
 @endsection

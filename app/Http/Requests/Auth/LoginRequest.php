@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\User;
+use App\Models\AllUsers\User;
 use App\Notifications\TwoFoctorCode;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,6 +27,14 @@ class LoginRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'البريد أو اسم المستخدم مطلوب.',
+            'password.required' => 'كلمة المرور مطلوبة.',
+        ];
+    }
+
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -35,7 +43,7 @@ class LoginRequest extends FormRequest
 
         if (! $user || ! Hash::check($this->input('password'), $user->password)) {
             RateLimiter::hit($this->throttleKey());
-            throw ValidationException::withMessages(['email' => trans('auth.failed')]);
+            throw ValidationException::withMessages(['email' => 'بيانات الدخول غير مطابقة لسجلاتنا.']);
         }
         if ($user->status === 'disabled') {
             throw ValidationException::withMessages(['email' => 'حسابك معطّل، تواصل مع الإدارة.']);
@@ -63,7 +71,7 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
         $seconds = RateLimiter::availableIn($this->throttleKey());
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', ['seconds' => $seconds, 'minutes' => ceil($seconds / 60)]),
+            'email' => 'محاولات كثيرة. حاول مرة أخرى بعد '.$seconds.' ثانية.',
         ]);
     }
 

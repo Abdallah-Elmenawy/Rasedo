@@ -4,16 +4,15 @@
 ])
 
 @if($href)
-    <a
-        href="{{ $href }}"
-        target="_blank"
-        rel="noopener"
+    <button
+        type="button"
+        data-print-url="{{ $href }}"
         title="{{ $title }}"
         {{ $attributes->merge(['class' => 'btn btn-icon-action btn-icon-print']) }}
     >
         <i class="fe fe-printer"></i>
         <span class="sr-only">{{ $title }}</span>
-    </a>
+    </button>
 @else
     <button
         type="button"

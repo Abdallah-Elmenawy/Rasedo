@@ -3,29 +3,27 @@
     @include('admin.partials.page-header', [
         'title' => 'دفتر الأستاذ',
         'subtitle' => 'التقارير',
-        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>
-                     <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>',
+        'export' => 'reports-ledger',
     ])
 @endsection
 @section('content')
-<div class="card report-filter">
-    <div class="card-body">
-        <form method="get" class="row align-items-end">
-            <div class="col-md-8 form-group mb-md-0">
-                <label>الحساب</label>
-                <select name="account_id" class="form-control">
-                    <option value="">اختر حسابًا...</option>
-                    @foreach($accounts as $a)
-                        <option value="{{ $a->id }}" @selected(optional($account)->id == $a->id)>{{ $a->code }} — {{ $a->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-4 form-group mb-0">
-                <button class="btn btn-primary"><i class="fe fe-search ml-1"></i> عرض</button>
-            </div>
-        </form>
+<x-filter-drawer>
+    <div class="filter-field">
+        <label>الحساب</label>
+        <select name="account_id" class="form-control">
+            <option value="">اختر حسابًا...</option>
+            @foreach($accounts as $a)
+                <option value="{{ $a->id }}" @selected(optional($account)->id == $a->id)>{{ $a->code }} — {{ $a->name }}</option>
+            @endforeach
+        </select>
     </div>
-</div>
+    <x-filter-field label="رقم القيد" name="journal_number" placeholder="أدخل رقم القيد..." />
+    <x-filter-field label="البيان" name="description" placeholder="أدخل البيان..." />
+    <x-filter-field label="التاريخ" name="journal_date" type="date" />
+    <x-filter-field label="مدين" name="debit" type="number" placeholder="أدخل المدين..." />
+    <x-filter-field label="دائن" name="credit" type="number" placeholder="أدخل الدائن..." />
+</x-filter-drawer>
 
 @if($account)
 <div class="row">
@@ -58,9 +56,7 @@
             </tbody>
         </table>
     </div>
-    @if($lines->hasPages())
-        <div class="card-footer d-flex justify-content-center">{{ $lines->withQueryString()->links() }}</div>
-    @endif
+    <x-table-pager :items="$lines" />
 </div>
 @else
 <div class="card">

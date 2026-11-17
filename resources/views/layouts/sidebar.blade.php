@@ -2,17 +2,17 @@
 <aside class="app-sidebar sidebar-scroll">
     <div class="main-sidebar-header active">
         <a class="desktop-logo logo-light active" href="{{ route('dashboard') }}">
-            <span class="main-logo tx-20 font-weight-bold text-primary">{{ optional(company())->name ?? 'Billora' }}</span>
+            @include('layouts.brand-mark')
         </a>
         <a class="desktop-logo logo-dark active" href="{{ route('dashboard') }}">
-            <span class="main-logo tx-20 font-weight-bold text-white">{{ optional(company())->name ?? 'Billora' }}</span>
+            @include('layouts.brand-mark')
         </a>
     </div>
     <div class="main-sidemenu">
         <div class="app-sidebar__user clearfix">
             <div class="dropdown user-pro-body">
                 <div>
-                    <img alt="user-img" class="avatar avatar-xl brround" src="{{ URL::asset('assets/img/faces/6.jpg') }}">
+                    <img alt="user-img" class="avatar avatar-xl brround" src="{{ company_avatar() }}">
                 </div>
                 <div class="user-info">
                     <h4 class="font-weight-semibold mt-3 mb-0">{{ Auth::user()->name }}</h4>
@@ -25,8 +25,18 @@
             @if(can('dashboard.view'))
             <li class="slide"><a class="side-menu__item" href="{{ route('dashboard') }}"><i class="side-menu__icon fe fe-home"></i><span class="side-menu__label">لوحة التحكم</span></a></li>
             @endif
-            @if(auth()->user()->hasPermission('sales.view'))
-            <li class="slide"><a class="side-menu__item" href="{{ route('pos.index') }}"><i class="side-menu__icon fe fe-monitor"></i><span class="side-menu__label">نقطة البيع</span></a></li>
+            @if(auth()->user()->hasPermission('pos.view') || auth()->user()->hasPermission('pos.create'))
+            <li class="slide">
+                <a class="side-menu__item" data-toggle="slide" href="#"><i class="side-menu__icon fe fe-monitor"></i><span class="side-menu__label">نقطة البيع</span><i class="angle fe fe-chevron-down"></i></a>
+                <ul class="slide-menu">
+                    @if(auth()->user()->hasPermission('pos.view'))
+                    <li><a class="slide-item" href="{{ route('pos.index') }}">ملخص المبيعات</a></li>
+                    @endif
+                    @if(auth()->user()->hasPermission('pos.create'))
+                    <li><a class="slide-item" href="{{ route('pos.sell') }}">شاشة البيع</a></li>
+                    @endif
+                </ul>
+            </li>
             @endif
             @if(auth()->user()->hasPermission('customers.view'))
             <li class="slide">
@@ -66,7 +76,6 @@
             <li class="slide">
                 <a class="side-menu__item" data-toggle="slide" href="#"><i class="side-menu__icon fe fe-shopping-cart"></i><span class="side-menu__label">المبيعات</span><i class="angle fe fe-chevron-down"></i></a>
                 <ul class="slide-menu">
-                    <li><a class="slide-item" href="{{ route('pos.index') }}">نقطة البيع</a></li>
                     <li><a class="slide-item" href="{{ route('sales.index') }}">فواتير المبيعات</a></li>
                     @if(can('sales.create'))<li><a class="slide-item" href="{{ route('sales.create') }}">إنشاء فاتورة</a></li>@endif
                     <li><a class="slide-item" href="{{ route('sales-returns.index') }}">مرتجعات المبيعات</a></li>

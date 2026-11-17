@@ -13,15 +13,7 @@
 		});
 	});
 
-	$(".app-sidebar").hover(function() {
-		if ($('body').hasClass('sidenav-toggled')) {
-			$('body').addClass('sidenav-toggled-open');
-		}
-	}, function() {
-		if ($('body').hasClass('sidenav-toggled')) {
-			$('body').removeClass('sidenav-toggled-open');
-		}
-	});
+	$(".app-sidebar").off("mouseenter mouseleave");
 
 
 
@@ -45,6 +37,47 @@
 		}
 	}
 
+	function revealSidebarItem($el) {
+		var $pane = $('.main-sidemenu');
+		var container = $pane.find('.mCSB_container').get(0);
+		var box = $pane.find('.mCustomScrollBox').get(0);
+		var el = $el && $el.get(0);
+		if (!$pane.data('mCS') || !container || !box || !el) {
+			return;
+		}
+		var boxRect = box.getBoundingClientRect();
+		var elRect = el.getBoundingClientRect();
+		var padding = 8;
+		var delta = 0;
+		if (elRect.top < boxRect.top + padding) {
+			delta = elRect.top - boxRect.top - padding;
+		} else if (elRect.bottom > boxRect.bottom - padding) {
+			delta = elRect.bottom - boxRect.bottom + padding;
+		}
+		if (Math.abs(delta) < 1) {
+			return;
+		}
+		var current = Math.abs(parseFloat(container.style.top) || 0);
+		var max = Math.max(0, container.scrollHeight - box.clientHeight);
+		var next = Math.min(max, Math.max(0, current + delta));
+		if (Math.abs(next - current) < 1) {
+			return;
+		}
+		$pane.mCustomScrollbar('scrollTo', next, {
+			scrollInertia: 550,
+			scrollEasing: 'easeInOut',
+			timeout: 30
+		});
+	}
+
+	function revealActiveItem() {
+		var $active = $('.main-sidemenu a.slide-item.active, .main-sidemenu a.side-menu__item.active').last();
+		if (!$active.length) {
+			return;
+		}
+		revealSidebarItem($active);
+	}
+
 	function finishSlide($menu, token) {
 		if ($menu.data('slideToken') !== token) {
 			return;
@@ -53,6 +86,13 @@
 		$menu.off('transitionend.slideMenu');
 		clearSlideInline($menu);
 		refreshSidebarScroll();
+		var $item = $menu.parent();
+		var box = $('.main-sidemenu .mCustomScrollBox').get(0);
+		if ($item.hasClass('is-expanded') && box && $item.outerHeight() <= box.clientHeight - 16) {
+			revealSidebarItem($item);
+		} else if ($item.hasClass('is-expanded')) {
+			revealSidebarItem($item.children('a').first());
+		}
 	}
 
 	function bindSlideEnd($menu, token) {
@@ -187,7 +227,16 @@
 	$(".main-sidemenu").mCustomScrollbar({
 		theme:"minimal",
 		autoHideScrollbar: true,
-		scrollbarPosition: "outside"
+		scrollbarPosition: "outside",
+		advanced: {
+			autoScrollOnFocus: false
+		},
+		callbacks: {
+			onInit: function () {
+				revealActiveItem();
+				window.setTimeout(revealActiveItem, 160);
+			}
+		}
 	});
 
 })();

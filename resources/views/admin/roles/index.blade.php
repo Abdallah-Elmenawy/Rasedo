@@ -3,15 +3,23 @@
     @include('admin.partials.page-header', [
         'title' => 'الأدوار والصلاحيات',
         'action' => can('users.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addRoleModal"><i class="fe fe-plus ml-1"></i> إضافة دور</button>' : '',
+        'export' => 'roles',
     ])
 @endsection
 @section('content')
 @php $openAddModal = $errors->any(); @endphp
 
+<x-filter-drawer>
+    <x-filter-field label="اسم الدور" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="الوصف" name="description" placeholder="أدخل الوصف..." />
+    <x-filter-field label="الصلاحيات" name="permission" placeholder="أدخل اسم الصلاحية..." />
+    <x-filter-field label="المستخدمون" name="users_count" type="number" placeholder="أدخل العدد..." />
+</x-filter-drawer>
+
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-shield"></i> الأدوار</h4>
-        <span class="count-badge">{{ $roles->count() }} دور</span>
+        <span class="count-badge">{{ $roles->total() }} دور</span>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
@@ -70,10 +78,11 @@
             </tbody>
         </table>
     </div>
+    <x-table-pager :items="$roles" />
 </div>
 
 <div class="modal fade" id="addRoleModal" tabindex="-1" role="dialog" aria-labelledby="addRoleModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable" role="document">
         <div class="modal-content border-0 shadow">
             <form method="post" action="{{ route('roles.store') }}">
                 @csrf

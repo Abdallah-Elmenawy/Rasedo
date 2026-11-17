@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>فاتورة SAL-0009</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            background: #F4F7FE;
+        }
+
+        body {
+            padding: 28px 16px 40px;
+        }
+
+        .inv-wrap {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: #fff;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="inv-wrap">
+        <link rel="stylesheet" href="assets/css/invoice-sheet.css">
+
+
+        <div class="inv-sheet">
+            <div class="inv-top">
+                <div class="inv-brand">
+                    <div class="inv-title">فاتورة</div>
+                    <span class="inv-status inv-status-paid">مدفوعة</span>
+                </div>
+                <div class="inv-company">
+                    <strong>Rasedo</strong>
+                    <span>شركة راصدو للمحاسبة</span>
+                    <span>القاهرة، مصر</span>
+                    <span>هاتف: 01000000000</span>
+                    <span>info@rasedo.test</span>
+                </div>
+            </div>
+
+            <div class="inv-mid">
+                <div class="inv-meta">
+                    <div class="inv-meta-row">
+                        <span class="inv-meta-label">رقم الفاتورة</span>
+                        <span class="inv-dots"></span>
+                        <span class="inv-meta-value">SAL-0009</span>
+                    </div>
+                    <div class="inv-meta-row">
+                        <span class="inv-meta-label">كود العميل</span>
+                        <span class="inv-dots"></span>
+                        <span class="inv-meta-value">CUS-0002</span>
+                    </div>
+                    <div class="inv-meta-row">
+                        <span class="inv-meta-label">تاريخ الإصدار</span>
+                        <span class="inv-dots"></span>
+                        <span class="inv-meta-value">7 أكتوبر 2026</span>
+                    </div>
+                    <div class="inv-meta-row">
+                        <span class="inv-meta-label">تاريخ الاستحقاق</span>
+                        <span class="inv-dots"></span>
+                        <span class="inv-meta-value">—</span>
+                    </div>
+                </div>
+                <div class="inv-billto">
+                    <span class="inv-billto-label">فاتورة إلى</span>
+                    <strong>محمد</strong>
+                    <span>هاتف: 0123456789</span>
+                </div>
+            </div>
+
+            <div class="inv-table-wrap">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th class="is-type">النوع</th>
+                            <th class="is-desc">الوصف</th>
+                            <th class="is-num">الكمية</th>
+                            <th class="is-num">سعر الوحدة</th>
+                            <th class="is-num">المبلغ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="is-type">بطاطس محمرة</td>
+                            <td class="is-desc">—</td>
+                            <td class="is-num">15</td>
+                            <td class="is-num"><span class="inv-money">135.00 ج.م</span></td>
+                            <td class="is-num is-amount"><span class="inv-money">2,025.00 ج.م</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="inv-bottom">
+                <div class="inv-totals">
+                    <div class="inv-total-row">
+                        <span>المجموع الفرعي</span>
+                        <strong class="inv-money">2,025.00 ج.م</strong>
+                    </div>
+                    <div class="inv-total-row">
+                        <span>الضريبة (<bdi>0%</bdi>)</span>
+                        <strong class="inv-money">0.00 ج.م</strong>
+                    </div>
+                    <div class="inv-total-row">
+                        <span>الخصم</span>
+                        <strong class="inv-money">0.00 ج.م</strong>
+                    </div>
+                    <div class="inv-total-row">
+                        <span>المدفوع</span>
+                        <strong class="inv-money">2,025.00 ج.م</strong>
+                    </div>
+                    <div class="inv-total-row">
+                        <span>المتبقي</span>
+                        <strong class="inv-money">0.00 ج.م</strong>
+                    </div>
+                    <div class="inv-total-row is-due">
+                        <span>الإجمالي </span>
+                        <strong class="inv-money">2,025.00 ج.م</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inv-actions no-print">
+                <button type="button" class="btn btn-primary inv-print" onclick="window.print()">طباعة</button>
+                <a class="btn btn-light" href="http://localhost/sales/9">رجوع للفاتورة</a>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

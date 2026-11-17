@@ -2,43 +2,21 @@
 @section('page-header')
     @include('admin.partials.page-header', [
         'title' => 'فواتير المشتريات',
-        'action' => can('purchases.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPurchaseModal"><i class="fe fe-plus ml-1"></i> إنشاء فاتورة مشتريات جديدة</button>' : '',
+        'action' => can('purchases.create') ? '<a href="'.route('purchases.create').'" class="btn btn-primary"><i class="fe fe-plus ml-1"></i> إضافة فاتورة</a>' : '',
+        'export' => 'purchases',
     ])
 @endsection
 @section('content')
-@php $openAddModal = old('_form') === 'purchase'; @endphp
-
-<div class="card filter-card mb-3">
-    <div class="card-body">
-        <form method="get" class="row align-items-end">
-            <div class="col-md-3 form-group">
-                <label>المورد</label>
-                <select name="supplier_id" class="form-control">
-                    <option value="">كل الموردين</option>
-                    @foreach($suppliers as $s)
-                        <option value="{{ $s->id }}" @selected(request('supplier_id') == $s->id)>{{ $s->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3 form-group">
-                <label>الحالة</label>
-                <select name="status" class="form-control">
-                    <option value="">كل الحالات</option>
-                    @foreach(['draft','confirmed','partial','paid','cancelled'] as $st)
-                        <option value="{{ $st }}" @selected(request('status') === $st)>{{ invoice_status_label($st) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-4 form-group">
-                <label>رقم الفاتورة</label>
-                <input name="q" value="{{ request('q') }}" class="form-control" placeholder="ابحث برقم الفاتورة...">
-            </div>
-            <div class="col-md-2 form-group">
-                <button class="btn btn-primary btn-block"><i class="fe fe-filter ml-1"></i> تصفية</button>
-            </div>
-        </form>
-    </div>
-</div>
+<x-filter-drawer>
+    <x-filter-field label="الرقم" name="number" placeholder="أدخل رقم الفاتورة..." />
+    <x-filter-field label="اسم المورد" name="supplier_id" type="select" :options="$filters['suppliers']" />
+    <x-filter-field label="تاريخ الشراء" name="invoice_date" type="date" />
+    <x-filter-field label="الحالة" name="status" type="select" :options="$filters['statuses']" />
+    <x-filter-field label="الإجمالي" name="total" type="number" placeholder="أدخل الإجمالي..." />
+    <x-filter-field label="المتبقي" name="remaining" type="number" placeholder="أدخل المتبقي..." />
+    <x-filter-field label="أنشئت بواسطة" name="created_by" type="select" :options="$filters['creators']" />
+    <x-filter-field label="تاريخ الإنشاء" name="created_on" type="date" />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -77,12 +55,12 @@
                         <div class="btn-actions">
                             <x-view-link :href="route('purchases.show', $inv)" title="عرض الفاتورة" />
                             <x-print-link :href="route('purchases.print', $inv)" title="طباعة الفاتورة" />
-                                @if($inv->isEditable() && can('purchases.update'))
-                                    <x-edit-link :href="route('purchases.edit', $inv)" />
-                                @endif
-                                @if($inv->isEditable() && can('purchases.delete'))
-                                    <x-delete-form :action="route('purchases.destroy', $inv)" message="هل أنت متأكد من حذف هذه الفاتورة؟" title="حذف الفاتورة" />
-                                @endif
+                            @if(can('purchases.update'))
+                                <x-edit-link :href="route('purchases.edit', $inv)" />
+                            @endif
+                            @if(can('purchases.delete'))
+                                <x-delete-form :action="route('purchases.destroy', $inv)" message="هل أنت متأكد من حذف فاتورة {{ $inv->number }}؟ لا يمكن التراجع عن هذا الإجراء." title="حذف الفاتورة" />
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -92,87 +70,26 @@
             </tbody>
         </table>
     </div>
-    @if($invoices->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $invoices->firstItem() }} - {{ $invoices->lastItem() }} من {{ $invoices->total() }}</span>
-            {{ $invoices->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$invoices" />
 </div>
 
 <div class="card mt-3">
-    <div class="card-body text-right">
-        <h5 class="mb-1">ملخص إجماليات فواتير المشتريات</h5>
-        <div class="invoice-summary">
-            <div class="invoice-summary-item">
-                <strong>إجمالي الفواتير المعروضة حالياً:</strong>
-                <span class="invoice-summary-pill is-info">{{ money($displayedTotal) }}</span>
-            </div>
-            <div class="invoice-summary-item">
-                <strong>الإجمالي الكلي لفواتير الشراء (غير الملغاة):</strong>
-                <span class="invoice-summary-pill is-success">{{ money($grandTotal) }}</span>
-            </div>
-        </div>
+    <div class="card-header">
+        <h4 class="card-title mb-0">ملخص إجماليات فواتير المشتريات</h4>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered mb-0 invoice-summary-table">
+            <tbody>
+                <tr>
+                    <td class="invoice-summary-label">إجمالي الفواتير المعروضة حالياً</td>
+                    <td class="invoice-summary-value"><span class="invoice-summary-pill is-info">{{ money($displayedTotal) }}</span></td>
+                </tr>
+                <tr>
+                    <td class="invoice-summary-label">الإجمالي الكلي لفواتير الشراء (غير الملغاة)</td>
+                    <td class="invoice-summary-value"><span class="invoice-summary-pill is-success">{{ money($grandTotal) }}</span></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
-
-<div class="modal fade" id="addPurchaseModal" tabindex="-1" role="dialog" aria-labelledby="addPurchaseModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-        <div class="modal-content border-0 shadow">
-            <form method="post" action="{{ route('purchases.store') }}">
-                @csrf
-                <input type="hidden" name="_form" value="purchase">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addPurchaseModalTitle">إنشاء فاتورة مشتريات جديدة</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body px-4 pt-4">
-                    @include('admin.purchases._form-fields', ['fieldId' => 'add_supplier_id', 'itemsTableId' => 'add-purchase-items'])
-                </div>
-                <div class="modal-footer border-0 px-4 pb-4">
-                    <button class="btn btn-secondary" name="confirm" value="0">حفظ كمسودة</button>
-                    <button class="btn btn-primary" name="confirm" value="1">حفظ وتأكيد</button>
-                    <button type="button" class="btn btn-light" data-dismiss="modal">رجوع</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endsection
-@section('js')
-<script>
-const purchaseProducts = @json($products->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $p->cost_price]));
-document.addEventListener('click', function (e) {
-    const addBtn = e.target.closest('.js-add-item');
-    if (addBtn) {
-        const tbody = document.querySelector('#' + addBtn.dataset.table + ' tbody');
-        if (!tbody) return;
-        const i = tbody.rows.length;
-        const opts = purchaseProducts.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="col-serial"></td><td><select name="items[${i}][product_id]" class="form-control prod">${opts}</select></td>
-            <td><input name="items[${i}][qty]" class="form-control" type="number" step="0.001" value="1"></td>
-            <td><input name="items[${i}][unit_cost]" class="form-control price" type="number" step="0.01" value="${purchaseProducts[0]?.price||0}"></td>
-            <td><input name="items[${i}][discount]" class="form-control" type="number" step="0.01" value="0"></td>
-            <td><input name="items[${i}][tax]" class="form-control" type="number" step="0.01" value="0"></td>
-            <td class="col-actions"><button type="button" class="btn btn-icon-action btn-icon-delete del" title="حذف البند"><i class="fe fe-trash-2"></i></button></td>`;
-        tbody.appendChild(tr);
-    }
-    const delBtn = e.target.closest('#add-purchase-items .del');
-    if (delBtn && document.querySelectorAll('#add-purchase-items tbody tr').length > 1) {
-        delBtn.closest('tr').remove();
-    }
-});
-document.addEventListener('change', function (e) {
-    if (e.target.classList.contains('prod')) {
-        const p = e.target.selectedOptions[0].dataset.price;
-        e.target.closest('tr').querySelector('.price').value = p;
-    }
-});
-@if($openAddModal)
-$(function () { $('#addPurchaseModal').modal('show'); });
-@endif
-</script>
 @endsection

@@ -3,8 +3,10 @@
     @include('admin.partials.page-header', [
         'title' => 'مرتجع '.$return->number,
         'subtitle' => 'مرتجعات المشتريات',
-        'action' => '<a href="'.route('purchase-returns.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل المرتجعات</a>
-                     <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'action' => '<a href="'.route('purchase-returns.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل المرتجعات</a>',
+        'exports' => [
+            ['sheet' => 'purchase-return-items', 'params' => ['purchase_return' => $return->id]],
+        ],
     ])
 @endsection
 @section('content')
@@ -20,24 +22,27 @@
         <span class="badge badge-{{ invoice_status_badge($return->status) }}">{{ invoice_status_label($return->status) }}</span>
     </div>
     <div class="table-responsive">
+        @php $returnItems = paginate_collection($return->items, 15, 'items_page'); @endphp
         <table class="table table-bordered table-hover mb-0">
             <thead><tr><th class="col-serial">#</th><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
             <tbody>
-            @foreach($return->items as $item)
+            @foreach($returnItems as $item)
                 <tr>
-                    <td class="col-serial">{{ $loop->iteration }}</td>
+                    <td class="col-serial">{{ row_no($returnItems, $loop) }}</td>
                     <td class="cell-strong">{{ $item->product->name ?? '-' }}</td>
                     <td>{{ $item->qty }}</td>
-                    <td class="cell-money">{{ money($item->unit_price) }}</td>
+                    <td class="cell-money">{{ money($item->unit_cost) }}</td>
                     <td class="cell-money">{{ money($item->total) }}</td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     </div>
+    <x-table-pager :items="$returnItems" />
     <div class="card-footer table-card-footer">
         <div class="report-total flex-grow-1"><span>الإجمالي</span><strong>{{ money($return->total) }}</strong></div>
         @if($return->status==='draft' && can('purchases.update'))
+            <a class="btn btn-light" href="{{ route('purchase-returns.edit', $return) }}"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>
             <form method="post" action="{{ route('purchase-returns.confirm', $return) }}">@csrf<button class="btn btn-success"><i class="fe fe-check ml-1"></i> تأكيد المرتجع</button></form>
         @endif
     </div>

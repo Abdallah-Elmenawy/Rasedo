@@ -3,10 +3,22 @@
     @include('admin.partials.page-header', [
         'title' => 'مرتجعات المشتريات',
         'action' => can('purchases.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPurchaseReturnModal"><i class="fe fe-plus ml-1"></i> مرتجع جديد</button>' : '',
+        'export' => 'purchase-returns',
     ])
 @endsection
 @section('content')
 @php $openAddModal = old('_form') === 'purchase_return'; @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="الرقم" name="number" placeholder="أدخل رقم المرتجع..." />
+    <x-filter-field label="المورد" name="supplier_id" type="select" :options="$filters['suppliers']" />
+    <x-filter-field label="الفاتورة" name="purchase_invoice_id" type="select" :options="$filters['invoices']" />
+    <x-filter-field label="التاريخ" name="return_date" type="date" />
+    <x-filter-field label="الإجمالي" name="total" type="number" placeholder="أدخل الإجمالي..." />
+    <x-filter-field label="الحالة" name="status" type="select" :options="$filters['statuses']" />
+    <x-filter-field label="أنشئت بواسطة" name="created_by" type="select" :options="$filters['creators']" />
+    <x-filter-field label="تاريخ الإنشاء" name="created_on" type="date" />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -44,9 +56,12 @@
                     <td class="col-actions">
                         <div class="btn-actions">
                             <x-view-link :href="route('purchase-returns.show', $r)" title="عرض المرتجع" />
-                                @if($r->status === 'draft' && can('purchases.delete'))
-                                    <x-delete-form :action="route('purchase-returns.destroy', $r)" message="هل أنت متأكد من حذف هذا المرتجع؟" title="حذف المرتجع" />
-                                @endif
+                            @if(can('purchases.update'))
+                                <x-edit-link :href="route('purchase-returns.edit', $r)" title="تعديل المرتجع" />
+                            @endif
+                            @if(can('purchases.delete'))
+                                <x-delete-form :action="route('purchase-returns.destroy', $r)" message="هل أنت متأكد من حذف مرتجع {{ $r->number }}؟ لا يمكن التراجع عن هذا الإجراء." title="حذف المرتجع" />
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -56,12 +71,7 @@
             </tbody>
         </table>
     </div>
-    @if($returns->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $returns->firstItem() }} - {{ $returns->lastItem() }} من {{ $returns->total() }}</span>
-            {{ $returns->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$returns" />
 </div>
 
 <div class="modal fade" id="addPurchaseReturnModal" tabindex="-1" role="dialog" aria-labelledby="addPurchaseReturnModalTitle" aria-hidden="true">

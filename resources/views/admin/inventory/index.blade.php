@@ -3,15 +3,35 @@
     @include('admin.partials.page-header', [
         'title' => 'المخزون',
         'action' => can('inventory.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addStockModal"><i class="fe fe-plus ml-1"></i> حركة مخزون يدوية</button>' : '',
+        'exports' => [
+            ['sheet' => 'inventory', 'label' => 'Excel الأرصدة'],
+            ['sheet' => 'inventory-movements', 'label' => 'Excel الحركات'],
+        ],
     ])
 @endsection
 @section('content')
+<div class="card mb-3">
+    <div class="card-body">
+        <label for="stockScan">مسح الصنف</label>
+        <input id="stockScan" class="form-control" placeholder="باركود أو QR أو سيريال" autocomplete="off">
+        <div id="stockScanResult" class="stock-scan-result" hidden></div>
+    </div>
+</div>
 @php
     $openAddModal = old('_form') === 'inventory';
     $typeLabels = ['in' => 'إضافة', 'out' => 'صرف', 'adjust' => 'تسوية'];
 @endphp
 
 @php $typeBadges = ['in' => 'success', 'out' => 'danger', 'adjust' => 'info']; @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="المنتج" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="المخزون" name="current_stock" type="number" placeholder="أدخل المخزون..." />
+    <x-filter-field label="الحد الأدنى" name="min_stock" type="number" placeholder="أدخل الحد الأدنى..." />
+    <x-filter-field label="القيمة" name="stock_value" type="number" placeholder="أدخل القيمة..." />
+    <x-filter-field label="الحالة" name="stock_status" type="select" :options="$filters['statuses']" />
+</x-filter-drawer>
+
 <div class="card mb-3">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-package"></i> أرصدة المنتجات</h4>
@@ -32,11 +52,11 @@
             </thead>
             <tbody>
             @forelse($products as $p)
-                <tr class="{{ $p->isLowStock() ? 'table-warning' : '' }}">
+                <tr>
                     <td class="col-serial">{{ row_no($products, $loop) }}</td>
                     <td class="cell-strong">{{ $p->name }}</td>
-                    <td class="cell-strong">{{ $p->current_stock }}</td>
-                    <td class="text-muted">{{ $p->min_stock }}</td>
+                    <td class="cell-strong">{{ qty($p->current_stock) }}</td>
+                    <td class="text-muted">{{ qty($p->min_stock) }}</td>
                     <td class="cell-money">{{ money($p->current_stock * $p->cost_price) }}</td>
                     <td>
                         @if($p->current_stock <= 0)
@@ -49,7 +69,9 @@
                     </td>
                     <td class="col-actions">
                         <div class="btn-actions">
+                            <x-view-link :href="route('inventory.show', $p)" title="عرض الرصيد والحركات" />
                             @if(can('products.update'))<x-edit-link :href="route('products.edit', $p)" title="تعديل المنتج" />@endif
+                            @if(can('products.delete'))<x-delete-form :action="route('products.destroy', $p)" message="هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء." title="حذف المنتج" />@endif
                         </div>
                     </td>
                 </tr>
@@ -59,18 +81,13 @@
             </tbody>
         </table>
     </div>
-    @if($products->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $products->firstItem() }} - {{ $products->lastItem() }} من {{ $products->total() }}</span>
-            {{ $products->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$products" />
 </div>
 
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-activity"></i> آخر الحركات</h4>
-        <span class="count-badge">{{ $movements->count() }} حركة</span>
+        <span class="count-badge">{{ $movements->total() }} حركة</span>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
@@ -100,6 +117,7 @@
             </tbody>
         </table>
     </div>
+    <x-table-pager :items="$movements" />
 </div>
 
 <div class="modal fade" id="addStockModal" tabindex="-1" role="dialog" aria-labelledby="addStockModalTitle" aria-hidden="true">
@@ -123,7 +141,7 @@
                             <select id="stock_product_id" name="product_id" class="form-control @error('product_id') is-invalid @enderror" required>
                                 <option value="">اختر المنتج</option>
                                 @foreach($formProducts as $p)
-                                    <option value="{{ $p->id }}" @selected(old('product_id') == $p->id)>{{ $p->name }} ({{ $p->current_stock }})</option>
+                                    <option value="{{ $p->id }}" @selected(old('product_id') == $p->id)>{{ $p->name }} ({{ qty($p->current_stock) }})</option>
                                 @endforeach
                             </select>
                             @error('product_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -159,6 +177,28 @@
 </div>
 @endsection
 @section('js')
+<script>
+document.getElementById('stockScan').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var code = e.target.value.trim();
+    var box = document.getElementById('stockScanResult');
+    if (!code) return;
+    fetch(@json(route('products.scan')) + '?code=' + encodeURIComponent(code), {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function (response) {
+        return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+    }).then(function (result) {
+        box.hidden = false;
+        if (!result.ok || !result.data.product) {
+            box.textContent = (result.data && result.data.message) || 'لا يوجد صنف بهذا الكود.';
+            return;
+        }
+        var p = result.data.product;
+        box.innerHTML = '<strong>' + p.name + '</strong><span>الكود: ' + (p.scan_code || '') + '</span><span>المخزون: ' + p.stock + '</span><span>السعر: ' + p.price + '</span>' + (p.serial ? '<span>السيريال: ' + p.serial + '</span>' : '');
+    });
+});
+</script>
 @if($openAddModal)
 <script>
 $(function () { $('#addStockModal').modal('show'); });

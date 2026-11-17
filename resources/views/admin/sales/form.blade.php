@@ -19,22 +19,30 @@
 </div>
 @endsection
 @section('js')
+@php
+    $saleProducts = $products->map(fn ($p) => [
+        'id' => $p->id,
+        'name' => $p->name,
+        'price' => $p->sale_price,
+        'pieces' => (int) ($p->pieces_per_box ?: 0),
+    ]);
+@endphp
 <script>
-const saleProducts = @json($products->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $p->sale_price]));
+const saleProducts = @json($saleProducts);
 document.addEventListener('click', function (e) {
     const addBtn = e.target.closest('.js-add-item');
     if (addBtn) {
         const tbody = document.querySelector('#' + addBtn.dataset.table + ' tbody');
         if (!tbody) return;
         const i = tbody.rows.length;
-        const opts = saleProducts.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name}</option>`).join('');
+        const opts = saleProducts.map(p => `<option value="${p.id}" data-price="${p.price}" data-pieces="${p.pieces || 0}">${p.name}</option>`).join('');
         const tr = document.createElement('tr');
         tr.innerHTML = `<td class="col-serial"></td><td><select name="items[${i}][product_id]" class="form-control prod">${opts}</select></td>
             <td><input name="items[${i}][qty]" class="form-control" type="number" step="0.001" value="1"></td>
             <td><input name="items[${i}][unit_price]" class="form-control price" type="number" step="0.01" value="${saleProducts[0]?.price||0}"></td>
             <td><input name="items[${i}][discount]" class="form-control" type="number" step="0.01" value="0"></td>
             <td><input name="items[${i}][tax]" class="form-control" type="number" step="0.01" value="0"></td>
-            <td class="col-actions"><button type="button" class="btn btn-icon-action btn-icon-delete del" title="حذف البند"><i class="fe fe-trash-2"></i></button></td>`;
+            <td class="col-actions"><div class="btn-actions"><button type="button" class="btn btn-icon-action btn-icon-edit line-edit" title="تعديل البند"><i class="fe fe-edit-2"></i></button><button type="button" class="btn btn-icon-action btn-icon-delete del" title="حذف البند"><i class="fe fe-trash-2"></i></button></div></td>`;
         tbody.appendChild(tr);
     }
     const delBtn = e.target.closest('#edit-sale-items .del');

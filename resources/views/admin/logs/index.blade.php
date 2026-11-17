@@ -1,6 +1,9 @@
 @extends('layouts.master')
 @section('page-header')
-    @include('admin.partials.page-header', ['title' => 'سجل العمليات'])
+    @include('admin.partials.page-header', [
+        'title' => 'سجل العمليات',
+        'export' => 'logs',
+    ])
 @endsection
 @section('content')
 @php
@@ -48,6 +51,14 @@
     ];
 @endphp
 
+<x-filter-drawer>
+    <x-filter-field label="الوصف" name="description" placeholder="أدخل الوصف..." />
+    <x-filter-field label="الوحدة" name="module" type="select" :options="$filters['modules']" />
+    <x-filter-field label="الإجراء" name="action" type="select" :options="$filters['actions']" />
+    <x-filter-field label="المستخدم" name="user_id" type="select" :options="$filters['users']" />
+    <x-filter-field label="التاريخ" name="created_on" type="date" />
+</x-filter-drawer>
+
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-clock"></i> سجل العمليات</h4>
@@ -85,11 +96,6 @@
             </tbody>
         </table>
     </div>
-    @if($logs->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $logs->firstItem() }} - {{ $logs->lastItem() }} من {{ $logs->total() }}</span>
-            {{ $logs->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$logs" />
 </div>
 @endsection

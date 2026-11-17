@@ -3,10 +3,16 @@
     @include('admin.partials.page-header', [
         'title' => 'تصنيفات المنتجات',
         'action' => can('products.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategoryModal"><i class="fe fe-plus ml-1"></i> إضافة تصنيف</button>' : '',
+        'export' => 'categories',
     ])
 @endsection
 @section('content')
 @php $openAddModal = $errors->any(); @endphp
+
+<x-filter-drawer>
+    <x-filter-field label="الاسم" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="عدد المنتجات" name="products_count" type="number" placeholder="أدخل العدد..." />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -51,12 +57,7 @@
             </tbody>
         </table>
     </div>
-    @if($categories->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $categories->firstItem() }} - {{ $categories->lastItem() }} من {{ $categories->total() }}</span>
-            {{ $categories->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$categories" />
 </div>
 
 <div class="modal fade" id="addCategoryModal" tabindex="-1" role="dialog" aria-labelledby="addCategoryModalTitle" aria-hidden="true">

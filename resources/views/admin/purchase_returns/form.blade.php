@@ -12,25 +12,27 @@
         <button class="btn btn-secondary">اختيار الفاتورة</button>
     </form>
 @else
-    <form method="post" action="{{ route('purchase-returns.store') }}">@csrf
+    <form method="post" action="{{ isset($return) ? route('purchase-returns.update', $return) : route('purchase-returns.store') }}">
+        @csrf
+        @isset($return) @method('PUT') @endisset
         <input type="hidden" name="purchase_invoice_id" value="{{ $invoice->id }}">
         <p>فاتورة {{ $invoice->number }} — {{ $invoice->supplier->name }}</p>
-        <input type="date" name="return_date" class="form-control mb-2" value="{{ now()->toDateString() }}">
+        <input type="date" name="return_date" class="form-control mb-2" value="{{ isset($return) ? optional($return->return_date)->format('Y-m-d') : now()->toDateString() }}">
         <table class="table">
             <thead><tr><th class="col-serial">#</th><th>المنتج</th><th>الكمية</th><th>السعر</th></tr></thead>
             <tbody>
-            @foreach($invoice->items as $i => $item)
+            @foreach((isset($return) ? $return->items : $invoice->items) as $i => $item)
                 <tr>
                     <td class="col-serial">{{ $loop->iteration }}</td>
                     <td>{{ $item->product->name }}<input type="hidden" name="items[{{ $i }}][product_id]" value="{{ $item->product_id }}"></td>
                     <td><input name="items[{{ $i }}][qty]" class="form-control" type="number" step="0.001" value="{{ $item->qty }}"></td>
-                    <td><input name="items[{{ $i }}][unit_price]" class="form-control" type="number" step="0.01" value="{{ $item->unit_price }}"></td>
+                    <td><input name="items[{{ $i }}][unit_cost]" class="form-control" type="number" step="0.01" value="{{ $item->unit_cost }}"></td>
                 </tr>
             @endforeach
             </tbody>
         </table>
-        <textarea name="notes" class="form-control mb-2"></textarea>
-        <button class="btn btn-primary">حفظ المرتجع</button>
+        <textarea name="notes" class="form-control mb-2">{{ isset($return) ? $return->notes : '' }}</textarea>
+        <button class="btn btn-primary">{{ isset($return) ? 'حفظ التعديل' : 'حفظ المرتجع' }}</button>
     </form>
 @endif
 </div></div>

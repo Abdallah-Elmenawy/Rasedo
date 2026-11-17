@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\Permission;
-use App\Models\Role;
+use App\Models\PublicSettings\Permission;
+use App\Models\PublicSettings\Role;
 
 class PermissionCatalog
 {
@@ -15,7 +15,8 @@ class PermissionCatalog
             'suppliers' => 'الموردون',
             'products' => 'المنتجات والتصنيفات',
             'inventory' => 'المخزون',
-            'sales' => 'المبيعات ونقطة البيع',
+            'pos' => 'نقطة البيع',
+            'sales' => 'المبيعات',
             'purchases' => 'المشتريات',
             'accounting' => 'الحسابات',
             'treasury' => 'الخزينة',
@@ -49,8 +50,11 @@ class PermissionCatalog
             ['name' => 'عرض المخزون', 'slug' => 'inventory.view', 'module' => 'inventory', 'action' => 'view'],
             ['name' => 'تسجيل حركة مخزون', 'slug' => 'inventory.create', 'module' => 'inventory', 'action' => 'create'],
 
-            ['name' => 'عرض المبيعات ونقطة البيع', 'slug' => 'sales.view', 'module' => 'sales', 'action' => 'view'],
-            ['name' => 'إنشاء فاتورة أو طلب', 'slug' => 'sales.create', 'module' => 'sales', 'action' => 'create'],
+            ['name' => 'عرض ملخص المبيعات', 'slug' => 'pos.view', 'module' => 'pos', 'action' => 'view'],
+            ['name' => 'شاشة البيع وإصدار الفاتورة', 'slug' => 'pos.create', 'module' => 'pos', 'action' => 'create'],
+
+            ['name' => 'عرض فواتير المبيعات', 'slug' => 'sales.view', 'module' => 'sales', 'action' => 'view'],
+            ['name' => 'إنشاء فاتورة أو مرتجع', 'slug' => 'sales.create', 'module' => 'sales', 'action' => 'create'],
             ['name' => 'تعديل وتأكيد وتحصيل', 'slug' => 'sales.update', 'module' => 'sales', 'action' => 'update'],
             ['name' => 'حذف فاتورة أو مرتجع', 'slug' => 'sales.delete', 'module' => 'sales', 'action' => 'delete'],
 
@@ -62,6 +66,7 @@ class PermissionCatalog
             ['name' => 'عرض الحسابات والقيود', 'slug' => 'accounting.view', 'module' => 'accounting', 'action' => 'view'],
             ['name' => 'إضافة حساب أو قيد', 'slug' => 'accounting.create', 'module' => 'accounting', 'action' => 'create'],
             ['name' => 'تعديل حساب', 'slug' => 'accounting.update', 'module' => 'accounting', 'action' => 'update'],
+            ['name' => 'حذف حساب', 'slug' => 'accounting.delete', 'module' => 'accounting', 'action' => 'delete'],
 
             ['name' => 'عرض الخزينة', 'slug' => 'treasury.view', 'module' => 'treasury', 'action' => 'view'],
             ['name' => 'تحصيل وصرف وتحويل', 'slug' => 'treasury.create', 'module' => 'treasury', 'action' => 'create'],
@@ -85,7 +90,12 @@ class PermissionCatalog
     public static function sync(): void
     {
         foreach (self::all() as $permission) {
-            Permission::query()->updateOrCreate(['slug' => $permission['slug']], $permission);
+            $existing = Permission::query()->where('slug', $permission['slug'])->first();
+            if ($existing) {
+                $existing->fill(collect($permission)->except('name')->all())->save();
+                continue;
+            }
+            Permission::query()->create($permission);
         }
 
         $admin = Role::query()->where('slug', 'admin')->first();
@@ -93,11 +103,19 @@ class PermissionCatalog
             $admin->permissions()->sync(Permission::query()->pluck('id'));
         }
 
-        $dashboardId = Permission::query()->where('slug', 'dashboard.view')->value('id');
-        if ($dashboardId) {
-            Role::query()->each(function (Role $role) use ($dashboardId) {
-                $role->permissions()->syncWithoutDetaching([$dashboardId]);
-            });
+        $inherit = [
+            'sales.view' => ['pos.view'],
+            'sales.create' => ['pos.create'],
+        ];
+        foreach ($inherit as $from => $slugs) {
+            $fromId = Permission::query()->where('slug', $from)->value('id');
+            $toIds = Permission::query()->whereIn('slug', $slugs)->pluck('id');
+            if (! $fromId || $toIds->isEmpty()) {
+                continue;
+            }
+            Role::query()
+                ->whereHas('permissions', fn ($query) => $query->where('permissions.id', $fromId))
+                ->each(fn (Role $role) => $role->permissions()->syncWithoutDetaching($toIds));
         }
     }
 }

@@ -19,12 +19,12 @@
         font-size: 15px;
     }
     .profile-page .profile-input {
-        background: #F0F1F3 !important;
-        border: 1px solid transparent !important;
-        border-radius: 12px !important;
+        background: #F7FAFE !important;
+        border: 1px solid #E6EEF8 !important;
+        border-radius: 8px !important;
         height: 48px;
         padding: 0.65rem 1rem;
-        color: #1F2937;
+        color: #2D3E50;
         font-size: 14px;
         font-weight: 400;
         box-shadow: none !important;
@@ -46,6 +46,14 @@
         text-align: right;
         transition: all 0.2s ease;
         cursor: pointer;
+        outline: none !important;
+        box-shadow: none;
+    }
+    .profile-page .profile-nav-btn:hover,
+    .profile-page .profile-nav-btn:focus,
+    .profile-page .profile-nav-btn:active {
+        outline: none !important;
+        box-shadow: none !important;
     }
     .profile-page .profile-nav-btn i {
         font-size: 18px;
@@ -54,16 +62,20 @@
     .profile-page .profile-nav-btn:hover {
         border-color: transparent;
         background: rgba(107, 92, 231, 0.08);
-        color: #6B5CE7;
+        color: #1E4E9B;
     }
     .profile-page .profile-nav-btn:hover i {
-        color: #6B5CE7;
+        color: #1E4E9B;
     }
-    .profile-page .profile-nav-btn.active {
-        background: linear-gradient(135deg, #4A90E2 0%, #9B51E0 100%);
-        border-color: transparent;
+    .profile-page .profile-nav-btn.active,
+    .profile-page .profile-nav-btn.active:hover,
+    .profile-page .profile-nav-btn.active:focus,
+    .profile-page .profile-nav-btn.active:active {
+        background: linear-gradient(135deg, #5B92D4 0%, #1E4E9B 100%);
+        border-color: transparent !important;
         color: #fff;
-        box-shadow: 0 6px 16px rgba(107, 92, 231, 0.28);
+        outline: none !important;
+        box-shadow: 0 6px 16px rgba(107, 92, 231, 0.28) !important;
     }
     .profile-page .profile-nav-btn.active i {
         color: #fff;
@@ -84,7 +96,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #9B51E0;
+        color: #1E4E9B;
         font-size: 42px;
         font-weight: 700;
         background-image: linear-gradient(135deg, rgba(74, 144, 226, 0.12), rgba(155, 81, 224, 0.18));
@@ -95,10 +107,27 @@
         margin: 0;
         font-size: 14px;
     }
+    .profile-page .profile-avatar-picker {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        cursor: pointer;
+        color: #1E4E9B;
+        font-weight: 700;
+    }
+    .profile-page .profile-avatar-remove {
+        display: block;
+        margin-top: 8px;
+        color: #6B7280;
+        font-weight: 600;
+    }
     .profile-page .profile-input:focus {
         background: #fff !important;
-        border-color: #4A90E2 !important;
-        box-shadow: 0 0 0 0.2rem rgba(107, 92, 231, 0.18) !important;
+        border: 1.5px solid #1E4E9B !important;
+        box-shadow: 0 0 0 4px rgba(91, 146, 212, 0.22) !important;
+        outline: none !important;
     }
     .profile-page .profile-actions {
         display: flex;
@@ -116,7 +145,7 @@
         font-weight: 700;
         border: none !important;
         color: #fff !important;
-        background-image: linear-gradient(135deg, #4A90E2 0%, #9B51E0 100%) !important;
+        background-image: linear-gradient(135deg, #5B92D4 0%, #1E4E9B 100%) !important;
         box-shadow: 0 6px 16px rgba(107, 92, 231, 0.28);
     }
     .profile-page .btn-profile-save:hover {
@@ -129,12 +158,12 @@
         border-radius: 12px !important;
         font-weight: 700;
         background: #fff !important;
-        border: 1.5px solid #C4B5FD !important;
-        color: #6B5CE7 !important;
+        border: 1.5px solid #B7D4F2 !important;
+        color: #1E4E9B !important;
     }
     .profile-page .btn-profile-back:hover {
         background: rgba(107, 92, 231, 0.08) !important;
-        color: #5A4BD6 !important;
+        color: #173E7C !important;
     }
     .profile-page .profile-panel { display: none; }
     .profile-page .profile-panel.active { display: block; }
@@ -143,7 +172,6 @@
 @section('content')
 @php
     $activeTab = old('_profile_tab', request('tab', 'basic'));
-    $initial = mb_substr($user->name ?? 'U', 0, 1);
 @endphp
 <div class="profile-page">
     <div class="row">
@@ -165,16 +193,22 @@
         <div class="col-lg-9 col-md-8 mb-3">
             <div class="card profile-main-card">
                 <div class="card-body p-4 p-md-5">
-                    <div class="profile-avatar-wrap">
-                        <div class="profile-avatar">{{ $initial }}</div>
-                        <p class="profile-avatar-label">الصورة الشخصية</p>
-                    </div>
-
                     <div class="profile-panel {{ $activeTab === 'basic' ? 'active' : '' }}" id="profile-panel-basic">
-                        <form method="post" action="{{ route('profile.update') }}">
+                        <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="_profile_tab" value="basic">
+                            <div class="profile-avatar-wrap">
+                                <label for="profileAvatar" class="profile-avatar-picker">
+                                    <img src="{{ user_avatar($user) }}" alt="{{ $user->name }}" class="profile-avatar" id="profileAvatarPreview">
+                                    <span>تغيير الصورة</span>
+                                </label>
+                                <input id="profileAvatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="d-none">
+                                @if($user->avatar)
+                                    <label class="profile-avatar-remove"><input type="checkbox" name="remove_avatar" value="1"> حذف الصورة</label>
+                                @endif
+                                @error('avatar')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="profile-label" for="name">الاسم</label>
@@ -244,6 +278,12 @@
 
     $(document).on('click', '.profile-nav-btn', function () {
         showProfileTab($(this).data('profile-tab'));
+    });
+
+    $(document).on('change', '#profileAvatar', function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        $('#profileAvatarPreview').attr('src', URL.createObjectURL(file));
     });
 })(window.jQuery);
 </script>

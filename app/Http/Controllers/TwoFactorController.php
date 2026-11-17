@@ -21,25 +21,41 @@ class TwoFactorController extends Controller
             return redirect()->route('login');
         }
         if ($user->isOtpLocked()) {
-            return back()->withErrors(['code' => 'تم إيقاف التحقق مؤقتاً لمدة 5 دقائق.']);
+            return $this->otpError($request, 'تم إيقاف التحقق مؤقتاً لمدة 5 دقائق.');
         }
         if ($user->expires_at && $user->expires_at->isPast()) {
-            return back()->withErrors(['code' => 'انتهت صلاحية رمز التحقق. أعد إرساله.']);
+            return $this->otpError($request, 'انتهت صلاحية رمز التحقق. أعد إرساله.');
         }
         if ($request->input('code') == $user->code) {
             $user->resetCode();
             $user->forceFill(['last_login_at' => now()])->save();
 
-            return redirect()->route('dashboard');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'تم تسجيل الدخول بنجاح',
+                    'redirect' => home_route(),
+                ]);
+            }
+
+            return redirect(home_route())->with('success', 'تم تسجيل الدخول بنجاح');
         }
         $user->increment('otp_attempts');
         if ($user->otp_attempts >= 3) {
             $user->forceFill(['otp_locked_until' => now()->addMinutes(5)])->save();
 
-            return back()->withErrors(['code' => 'تجاوزت عدد المحاولات. حاول بعد 5 دقائق.']);
+            return $this->otpError($request, 'تجاوزت عدد المحاولات. حاول بعد 5 دقائق.');
         }
 
-        return back()->withErrors(['code' => 'رمز التحقق غير صحيح.']);
+        return $this->otpError($request, 'رمز التحقق غير صحيح.');
+    }
+
+    private function otpError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], 422);
+        }
+
+        return back()->withErrors(['code' => $message]);
     }
 
     public function resend()

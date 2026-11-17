@@ -1,6 +1,7 @@
 @php
     $partyList = $formCustomers ?? $customers;
-    $oldItems = old('items', $invoice->items?->toArray() ?? [['qty' => 1]]);
+    $loadedItems = $invoice->items;
+    $oldItems = old('items', ($loadedItems && $loadedItems->isNotEmpty()) ? $loadedItems->toArray() : [['qty' => 1]]);
 @endphp
 <div class="row">
     <div class="col-md-4 form-group">
@@ -22,13 +23,25 @@
         <label>تاريخ الاستحقاق</label>
         <input type="date" name="due_date" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}">
     </div>
+    <div class="col-md-4 form-group">
+        <label>طريقة الاستلام</label>
+        <select name="order_type" class="form-control">
+            <option value="">بدون</option>
+            @foreach(\App\Support\ReceiptText::orderTypes() as $key => $label)
+                <option value="{{ $key }}" @selected(old('order_type', $invoice->order_type) === $key)>{{ $label }}</option>
+            @endforeach
+        </select>
+    </div>
 </div>
+<div class="invoice-lines">
+@include('admin.partials.serial-scan', ['scanContext' => 'sale', 'scanPrice' => 'unit_price', 'itemsTableId' => $itemsTableId ?? 'sale-items'])
 <div class="table-responsive">
-    <table class="table table-bordered" id="{{ $itemsTableId ?? 'sale-items' }}">
+    <table class="table" id="{{ $itemsTableId ?? 'sale-items' }}">
         <thead>
             <tr>
                 <th class="col-serial">#</th>
                 <th>المنتج</th>
+                <th class="col-unit">الوحدة</th>
                 <th>الكمية</th>
                 <th>السعر</th>
                 <th>خصم</th>
@@ -43,23 +56,48 @@
                 <td>
                     <select name="items[{{ $i }}][product_id]" class="form-control prod" required>
                         @foreach($products as $p)
-                            <option value="{{ $p->id }}" data-price="{{ $p->sale_price }}" @selected(($item['product_id'] ?? null) == $p->id)>{{ $p->name }}</option>
+                            <option value="{{ $p->id }}" data-price="{{ $p->sale_price }}" data-pieces="{{ (int) ($p->pieces_per_box ?: 0) }}" @selected(($item['product_id'] ?? null) == $p->id)>{{ $p->name }}</option>
                         @endforeach
                     </select>
+                    <input type="text" class="form-control line-scan" placeholder="امسح السيريال" autocomplete="off">
+                    <div class="line-serials">
+                        @foreach(($item['serials'] ?? []) as $s => $serial)
+                            @php $serialCode = is_array($serial) ? ($serial['code'] ?? '') : $serial; $serialKind = is_array($serial) && ($serial['kind'] ?? '') === 'box' ? 'box' : 'piece'; @endphp
+                            @if($serialCode !== '')
+                                <span class="line-serial" data-pieces="1">{{ $serialKind === 'box' ? 'علبة' : 'قطعة' }} {{ $serialCode }}
+                                    <button type="button" class="line-serial-x" aria-label="حذف">×</button>
+                                    <input type="hidden" name="items[{{ $i }}][serials][{{ $s }}][code]" value="{{ $serialCode }}">
+                                    <input type="hidden" name="items[{{ $i }}][serials][{{ $s }}][kind]" value="{{ $serialKind }}">
+                                </span>
+                            @endif
+                        @endforeach
+                    </div>
+                </td>
+                <td class="col-unit">
+                    <div class="line-unit" role="group" aria-label="وحدة البند">
+                        <button type="button" data-kind="piece" class="is-active">قطعة</button>
+                        <button type="button" data-kind="box">علبة</button>
+                    </div>
                 </td>
                 <td><input name="items[{{ $i }}][qty]" class="form-control" type="number" step="0.001" value="{{ $item['qty'] ?? 1 }}"></td>
                 <td><input name="items[{{ $i }}][unit_price]" class="form-control price" type="number" step="0.01" value="{{ $item['unit_price'] ?? 0 }}"></td>
                 <td><input name="items[{{ $i }}][discount]" class="form-control" type="number" step="0.01" value="{{ $item['discount'] ?? 0 }}"></td>
                 <td><input name="items[{{ $i }}][tax]" class="form-control" type="number" step="0.01" value="{{ $item['tax'] ?? 0 }}"></td>
                 <td class="col-actions">
-                    <button type="button" class="btn btn-icon-action btn-icon-delete del" title="حذف البند"><i class="fe fe-trash-2"></i></button>
+                    <div class="btn-actions">
+                        <button type="button" class="btn btn-icon-action btn-icon-edit line-edit" title="تعديل البند"><i class="fe fe-edit-2"></i></button>
+                        <button type="button" class="btn btn-icon-action btn-icon-delete del" title="حذف البند"><i class="fe fe-trash-2"></i></button>
+                    </div>
                 </td>
             </tr>
         @endforeach
         </tbody>
     </table>
 </div>
-<button type="button" class="btn btn-outline-primary btn-sm mb-3 js-add-item" data-table="{{ $itemsTableId ?? 'sale-items' }}">إضافة بند</button>
+<div class="invoice-lines-foot">
+    <button type="button" class="btn btn-outline-primary js-add-item" data-table="{{ $itemsTableId ?? 'sale-items' }}">إضافة بند</button>
+</div>
+</div>
 <div class="row">
     <div class="col-md-4 form-group">
         <label>خصم الفاتورة</label>

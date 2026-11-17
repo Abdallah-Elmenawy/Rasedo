@@ -1,0 +1,173 @@
+html, body {
+  margin: 0;
+  background: #F4F7FE;
+  font-family: "Cairo", sans-serif;
+}
+
+body { padding: 28px 16px 40px; }
+
+.inv-wrap { max-width: 980px; margin: 0 auto; }
+
+.print-a5 .inv-wrap { max-width: 148mm; }
+
+.ticket {
+  box-sizing: border-box;
+  margin: 0 auto;
+  background: #fff;
+  color: #000;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.thermal-58 { width: 58mm; padding: 2mm 1.5mm; font-size: 9px; }
+.thermal-80 { width: 80mm; padding: 3mm 2.5mm; font-size: 12px; }
+
+.ticket-shop,
+.ticket-kind,
+.ticket-type,
+.ticket-address,
+.ticket-phone {
+  margin: 0;
+  text-align: center;
+}
+
+.ticket-shop { font-size: 1.45em; margin-bottom: 4px; }
+.ticket-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ticket-brand.is-logo-left { flex-direction: row-reverse; }
+.ticket-brand .ticket-shop { margin: 0; line-height: 1; }
+.ticket-brand .ticket-logo {
+  width: 42px;
+  height: 42px;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+.ticket-logo {
+  display: block;
+  max-height: 52px;
+  max-width: 42%;
+  object-fit: contain;
+}
+.ticket-kind { font-size: 1.05em; }
+.ticket-type { margin-top: 1px; }
+
+.ticket-no {
+  width: fit-content;
+  margin: 6px auto 4px;
+  border: 2px solid #000;
+  min-width: 18mm;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 1.35em;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.ticket-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ticket-who { text-align: right; line-height: 1.35; }
+.ticket-date { text-align: left; white-space: nowrap; }
+
+.ticket-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.ticket-table th,
+.ticket-table td {
+  border: 1px solid #000;
+  padding: 2px 2px;
+  text-align: center;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.ticket-table .name { text-align: right; }
+
+.ticket-sum,
+.ticket-line,
+.ticket-net,
+.ticket-pay div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ticket-sum { margin-top: 4px; }
+
+.ticket-net {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 2px 0;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  font-size: 1.15em;
+}
+
+.ticket-pay { margin-top: 4px; }
+.ticket-address,
+.ticket-phone { margin-top: 6px; }
+
+.ticket-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.print-toolbar {
+  width: 80mm;
+  margin: 16px auto 0;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.print-toolbar .btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.print-toolbar .btn-primary { background: #1E4E9B; color: #fff; }
+.print-toolbar .btn-light { background: #fff; color: #1E4E9B; }
+
+@page { margin: 0; }
+@page a4sheet { size: A4 portrait; margin: 10mm; }
+@page a5sheet { size: A5 portrait; margin: 8mm; }
+@page t58 { size: 58mm auto; margin: 0; }
+@page t80 { size: 80mm auto; margin: 0; }
+
+@media print {
+  body { padding: 0; background: #fff; }
+  .no-print,
+  .print-toolbar { display: none !important; }
+  .print-a4 { page: a4sheet; }
+  .print-a5 { page: a5sheet; }
+  .print-thermal-58 { page: t58; }
+  .print-thermal-80 { page: t80; }
+  .print-a5 .inv-wrap { width: 148mm; max-width: 148mm; }
+  .thermal-58 { width: 58mm; padding: 2mm 1.5mm; }
+  .thermal-80 { width: 80mm; padding: 3mm 2.5mm; }
+}

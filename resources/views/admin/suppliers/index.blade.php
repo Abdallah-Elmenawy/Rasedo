@@ -3,32 +3,22 @@
     @include('admin.partials.page-header', [
         'title' => 'الموردون',
         'action' => can('suppliers.create') ? '<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addSupplierModal"><i class="fe fe-plus ml-1"></i> إضافة مورد جديد</button>' : '',
+        'export' => 'suppliers',
     ])
 @endsection
 @section('content')
 @php $openAddModal = old('_form') === 'supplier'; @endphp
 
-<div class="card filter-card mb-3">
-    <div class="card-body">
-        <form method="get" class="row align-items-end">
-            <div class="col-md-7 form-group">
-                <label>بحث</label>
-                <input name="q" value="{{ request('q') }}" class="form-control" placeholder="ابحث بالاسم أو رقم الموبايل...">
-            </div>
-            <div class="col-md-3 form-group">
-                <label>الحالة</label>
-                <select name="status" class="form-control">
-                    <option value="">كل الحالات</option>
-                    <option value="active" @selected(request('status')==='active')>نشط</option>
-                    <option value="inactive" @selected(request('status')==='inactive')>غير نشط</option>
-                </select>
-            </div>
-            <div class="col-md-2 form-group">
-                <button class="btn btn-primary btn-block"><i class="fe fe-search ml-1"></i> بحث</button>
-            </div>
-        </form>
-    </div>
-</div>
+<x-filter-drawer>
+    <x-filter-field label="الكود" name="code" placeholder="أدخل الكود..." />
+    <x-filter-field label="اسم المورد" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="الموبايل" name="phone" placeholder="أدخل الموبايل..." />
+    <x-filter-field label="العنوان" name="address" placeholder="أدخل العنوان..." />
+    <x-filter-field label="السجل التجاري" name="tax_number" placeholder="أدخل السجل التجاري..." />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+    <x-filter-field label="أضيف بواسطة" name="created_by" type="select" :options="$filters['creators']" />
+    <x-filter-field label="تاريخ الإضافة" name="created_on" type="date" />
+</x-filter-drawer>
 
 <div class="card">
     <div class="card-header">
@@ -78,50 +68,41 @@
             </tbody>
         </table>
     </div>
-    @if($suppliers->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $suppliers->firstItem() }} - {{ $suppliers->lastItem() }} من {{ $suppliers->total() }}</span>
-            {{ $suppliers->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$suppliers" />
 </div>
 
 <div class="modal fade" id="addSupplierModal" tabindex="-1" role="dialog" aria-labelledby="addSupplierModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content border-0 shadow">
             <form method="post" action="{{ route('suppliers.store') }}">
                 @csrf
                 <input type="hidden" name="_form" value="supplier">
-                <input type="hidden" name="status" value="active">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addSupplierModalTitle">إضافة مورد جديد</h5>
+                    <h5 class="modal-title" id="addSupplierModalTitle">إضافة مورد</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body px-4 pt-4">
-                    <div class="form-group">
-                        <label for="add_supplier_name">اسم المورد</label>
-                        <input id="add_supplier_name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                        @error('name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                    </div>
                     <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label for="add_supplier_phone">رقم الموبايل</label>
-                            <input id="add_supplier_phone" name="phone" class="form-control" value="{{ old('phone') }}">
+                        <div class="col-md-4 form-group"><label>الكود</label><input name="code" class="form-control" value="{{ old('code') }}"></div>
+                        <div class="col-md-4 form-group"><label>الاسم *</label><input name="name" class="form-control @error('name') is-invalid @enderror" required value="{{ old('name') }}">@error('name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+                        <div class="col-md-4 form-group"><label>الهاتف</label><input name="phone" class="form-control" value="{{ old('phone') }}"></div>
+                        <div class="col-md-4 form-group"><label>البريد</label><input name="email" type="email" class="form-control" value="{{ old('email') }}"></div>
+                        <div class="col-md-4 form-group"><label>الرقم الضريبي</label><input name="tax_number" class="form-control" value="{{ old('tax_number') }}"></div>
+                        <div class="col-md-4 form-group"><label>الحالة</label>
+                            <select name="status" class="form-control">
+                                <option value="active" @selected(old('status', 'active')==='active')>نشط</option>
+                                <option value="inactive" @selected(old('status')==='inactive')>غير نشط</option>
+                            </select>
                         </div>
-                        <div class="col-md-6 form-group">
-                            <label for="add_supplier_tax">السجل التجاري (اختياري)</label>
-                            <input id="add_supplier_tax" name="tax_number" class="form-control" value="{{ old('tax_number') }}">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="add_supplier_address">العنوان (اختياري)</label>
-                        <textarea id="add_supplier_address" name="address" class="form-control" rows="3">{{ old('address') }}</textarea>
+                        <div class="col-md-6 form-group"><label>رصيد أول المدة</label><input name="opening_balance" type="number" step="0.01" class="form-control" value="{{ old('opening_balance') }}"></div>
+                        <div class="col-md-12 form-group"><label>العنوان</label><input name="address" class="form-control" value="{{ old('address') }}"></div>
+                        <div class="col-md-12 form-group"><label>ملاحظات</label><textarea name="notes" class="form-control">{{ old('notes') }}</textarea></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">
-                    <button type="submit" class="btn btn-primary">إضافة المورد</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
                     <button type="button" class="btn btn-light" data-dismiss="modal">إلغاء</button>
                 </div>
             </form>

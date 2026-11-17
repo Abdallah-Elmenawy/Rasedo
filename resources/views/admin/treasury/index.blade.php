@@ -4,11 +4,16 @@
         'title' => 'الخزينة',
         'subtitle' => 'إدارة الخزائن والتحصيلات والمصروفات والتحويلات',
         'action' => can('treasury.create') ? '
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addTreasuryModal"><i class="fe fe-plus ml-1"></i> خزينة جديدة</button>
-            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#receiptModal"><i class="fe fe-download ml-1"></i> تحصيل من عميل</button>
-            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#paymentModal"><i class="fe fe-upload ml-1"></i> صرف لمورد</button>
-            <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#transferModal"><i class="fe fe-repeat ml-1"></i> تحويل بين الخزائن</button>
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addTreasuryModal"><i class="fe fe-plus"></i> خزينة جديدة</button>
+            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#receiptModal"><i class="fe fe-download"></i> تحصيل من عميل</button>
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#paymentModal"><i class="fe fe-upload"></i> صرف لمورد</button>
+            <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#transferModal"><i class="fe fe-repeat"></i> تحويل بين الخزائن</button>
         ' : '',
+        'exports' => [
+            ['sheet' => 'treasury-receipts', 'label' => 'Excel التحصيلات'],
+            ['sheet' => 'treasury-payments', 'label' => 'Excel الصرف'],
+            ['sheet' => 'treasury-transfers', 'label' => 'Excel التحويلات'],
+        ],
     ])
 @endsection
 @section('content')
@@ -41,7 +46,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-4">
+    <div class="col-lg-12">
         <div class="card">
             <div class="card-header"><h4 class="card-title mb-0">آخر التحصيلات</h4></div>
             <div class="table-responsive">
@@ -50,7 +55,7 @@
                     <tbody>
                     @forelse($receipts as $r)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($receipts, $loop) }}</td>
                             <td>{{ $r->party->name ?? '-' }}</td>
                             <td>{{ $r->treasury->name ?? '-' }}</td>
                             <td class="text-success font-weight-bold">{{ money($r->amount) }}</td>
@@ -62,9 +67,10 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$receipts" />
         </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header"><h4 class="card-title mb-0">آخر الصرف</h4></div>
             <div class="table-responsive">
@@ -73,7 +79,7 @@
                     <tbody>
                     @forelse($payments as $r)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($payments, $loop) }}</td>
                             <td>{{ $r->party->name ?? '-' }}</td>
                             <td>{{ $r->treasury->name ?? '-' }}</td>
                             <td class="text-danger font-weight-bold">{{ money($r->amount) }}</td>
@@ -85,9 +91,10 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$payments" />
         </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header"><h4 class="card-title mb-0">التحويلات</h4></div>
             <div class="table-responsive">
@@ -96,7 +103,7 @@
                     <tbody>
                     @forelse($transfers as $tr)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($transfers, $loop) }}</td>
                             <td>{{ $tr->fromTreasury->name ?? '-' }}</td>
                             <td>{{ $tr->toTreasury->name ?? '-' }}</td>
                             <td class="font-weight-bold">{{ money($tr->amount) }}</td>
@@ -108,6 +115,7 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$transfers" />
         </div>
     </div>
 </div>

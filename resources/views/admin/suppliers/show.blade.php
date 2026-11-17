@@ -4,8 +4,10 @@
         'title' => $supplier->name,
         'subtitle' => $supplier->code,
         'action' => '<a href="'.route('suppliers.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل الموردين</a>
-                     <a href="'.route('suppliers.edit', $supplier).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>
-                     <button type="button" class="btn btn-light" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+                     <a href="'.route('suppliers.edit', $supplier).'" class="btn btn-primary"><i class="fe fe-edit-2 ml-1"></i> تعديل</a>',
+        'exports' => [
+            ['sheet' => 'supplier-invoices', 'params' => ['supplier' => $supplier->id], 'label' => 'Excel الفواتير'],
+        ],
     ])
 @endsection
 @section('content')
@@ -65,17 +67,20 @@
     </div>
     <div class="col-md-8">
         <div class="card">
+            @php $supplierInvoices = paginate_collection($supplier->invoices, 15, 'invoices_page'); @endphp
             <div class="card-header">
                 <h4 class="card-title"><i class="fe fe-file-text"></i> فواتير المشتريات</h4>
-                <span class="count-badge">{{ $supplier->invoices->count() }} فاتورة</span>
+                <div class="card-header-side">
+                    <span class="count-badge">{{ $supplierInvoices->total() }} فاتورة</span>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover mb-0">
                     <thead><tr><th class="col-serial">#</th><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th>المتبقي</th><th>الحالة</th><th class="col-actions">الإجراءات</th></tr></thead>
                     <tbody>
-                    @forelse($supplier->invoices as $inv)
+                    @forelse($supplierInvoices as $inv)
                         <tr>
-                            <td class="col-serial">{{ $loop->iteration }}</td>
+                            <td class="col-serial">{{ row_no($supplierInvoices, $loop) }}</td>
                             <td class="cell-strong"><a href="{{ route('purchases.show', $inv) }}">{{ $inv->number }}</a></td>
                             <td>{{ optional($inv->invoice_date)->format('Y-m-d') }}</td>
                             <td class="cell-money">{{ money($inv->total) }}</td>
@@ -85,6 +90,9 @@
                                 <div class="btn-actions">
                                     <x-view-link :href="route('purchases.show', $inv)" title="عرض الفاتورة" />
                                     <x-print-link :href="route('purchases.print', $inv)" />
+                                    @if(can('purchases.delete'))
+                                        <x-delete-form :action="route('purchases.destroy', $inv)" message="هل أنت متأكد من حذف فاتورة {{ $inv->number }}؟ لا يمكن التراجع عن هذا الإجراء." title="حذف الفاتورة" />
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -94,6 +102,7 @@
                     </tbody>
                 </table>
             </div>
+            <x-table-pager :items="$supplierInvoices" />
         </div>
     </div>
 </div>

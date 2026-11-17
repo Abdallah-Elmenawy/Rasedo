@@ -1,5 +1,6 @@
+<meta name="print-format" content="{{ \App\Support\InvoicePrintFormat::key(optional(company())->print_format) }}">
 <!-- Title -->
-<title>{{ optional(company())->name ?? 'Billora' }} — نظام محاسبي</title>
+<title>{{ optional(company())->name ?? 'Rasedo' }} — نظام محاسبي</title>
 <!-- Favicon -->
 <link rel="icon" href="{{ URL::asset('assets/img/brand/favicon.png') }}" type="image/x-icon" />
 <!-- Cairo Font from Google Fonts -->
@@ -20,5 +21,5 @@
 <!---Skinmodes css-->
 <link href="{{ URL::asset('assets/css-rtl/skin-modes.css') }}" rel="stylesheet">
 <link href="{{ URL::asset('assets/css/cairo.css') }}" rel="stylesheet">
-<!--- Billora theme -->
-<link href="{{ URL::asset('assets/css/billora-theme.css') }}" rel="stylesheet">
+<!--- Rasedo theme -->
+<link href="{{ URL::asset('assets/css/rasedo-theme.css') }}?v=36" rel="stylesheet">

@@ -24,10 +24,10 @@ body.cairo, .cairo, .cairo h1, .cairo h2, .cairo h3, .cairo h4, .cairo h5, .cair
 .app-sidebar .side-menu__label {
     display: flex;
     align-items: center;
-    line-height: 1 !important;
+    line-height: 1.55 !important;
     margin: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 
 .app-sidebar .angle {

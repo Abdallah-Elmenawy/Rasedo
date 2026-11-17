@@ -3,14 +3,20 @@
     @include('admin.partials.page-header', [
         'title' => 'الحسابات الدائنة',
         'subtitle' => 'أرصدة الموردين المستحقة',
-        'action' => '<button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'export' => 'payables',
     ])
 @endsection
 @section('content')
+<x-filter-drawer>
+    <x-filter-field label="الكود" name="code" placeholder="أدخل الكود..." />
+    <x-filter-field label="المورد" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="الموبايل" name="phone" placeholder="أدخل الموبايل..." />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+</x-filter-drawer>
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-briefcase"></i> الموردون</h4>
-        <span class="count-badge">{{ $suppliers->count() }} مورد</span>
+        <span class="count-badge">{{ $suppliers->total() }} مورد</span>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover mb-0">
@@ -27,6 +33,7 @@
                         <div class="btn-actions">
                             <x-view-link :href="route('suppliers.show', $s)" title="كشف الحساب" />
                             @if(can('suppliers.update'))<x-edit-link :href="route('suppliers.edit', $s)" />@endif
+                            @if(can('suppliers.delete'))<x-delete-form :action="route('suppliers.destroy', $s)" message="هل أنت متأكد من حذف هذا المورد؟ سيتم إزالة بياناته من النظام." title="حذف المورد" />@endif
                         </div>
                     </td>
                 </tr>
@@ -36,9 +43,10 @@
             </tbody>
         </table>
     </div>
+    <x-table-pager :items="$suppliers" />
     <div class="card-footer report-total">
         <span>إجمالي الأرصدة الدائنة</span>
-        <strong>{{ money($suppliers->sum('current_balance')) }}</strong>
+        <strong>{{ money($balanceTotal) }}</strong>
     </div>
 </div>
 @endsection

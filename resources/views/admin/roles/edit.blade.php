@@ -14,7 +14,7 @@
     </div>
     <div class="card-body p-4">
         @if($role->slug === 'admin')
-            <div class="alert alert-info">دور مدير النظام يملك كل الصلاحيات دائمًا، ولا يمكن تقييده.</div>
+            <div class="alert alert-info">صلاحيات مدير النظام تبقى مفعّلة كلها. تقدر تعدّل نص الجملة نفسها، مثل لوحة التحكم وباقي الأقسام.</div>
         @endif
         <form method="post" action="{{ route('roles.update', $role) }}">
             @csrf

@@ -2,10 +2,16 @@
 @section('page-header')
     @include('admin.partials.page-header', [
         'title' => 'حسابات الموردين',
-        'action' => '<button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'export' => 'supplier-accounts',
     ])
 @endsection
 @section('content')
+<x-filter-drawer>
+    <x-filter-field label="المورد" name="name" type="select" :options="$filters['names']" />
+    <x-filter-field label="المشتريات" name="purchases" type="number" placeholder="أدخل المشتريات..." />
+    <x-filter-field label="المدفوع" name="paid" type="number" placeholder="أدخل المدفوع..." />
+    <x-filter-field label="الرصيد" name="balance" type="number" placeholder="أدخل الرصيد..." />
+</x-filter-drawer>
 <div class="card">
     <div class="card-header">
         <h4 class="card-title"><i class="fe fe-briefcase"></i> حسابات الموردين</h4>
@@ -35,6 +41,7 @@
                         <div class="btn-actions">
                             <x-view-link :href="route('suppliers.show', $s)" title="كشف الحساب" />
                             <x-view-link :href="route('purchases.index', ['supplier_id' => $s->id])" title="فواتير المورد" icon="fe-file-text" class="btn-icon-print" />
+                            @if(can('suppliers.delete'))<x-delete-form :action="route('suppliers.destroy', $s)" message="هل أنت متأكد من حذف هذا المورد؟ سيتم إزالة بياناته من النظام." title="حذف المورد" />@endif
                         </div>
                     </td>
                 </tr>
@@ -44,11 +51,6 @@
             </tbody>
         </table>
     </div>
-    @if($suppliers->hasPages())
-        <div class="card-footer table-card-footer">
-            <span class="text-muted">عرض {{ $suppliers->firstItem() }} - {{ $suppliers->lastItem() }} من {{ $suppliers->total() }}</span>
-            {{ $suppliers->withQueryString()->links() }}
-        </div>
-    @endif
+    <x-table-pager :items="$suppliers" />
 </div>
 @endsection

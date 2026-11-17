@@ -3,29 +3,17 @@
     @include('admin.partials.page-header', [
         'title' => 'الأرباح والخسائر',
         'subtitle' => 'التقارير',
-        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>
-                     <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fe fe-printer ml-1"></i> طباعة</button>',
+        'action' => '<a href="'.route('reports.index').'" class="btn btn-light"><i class="fe fe-arrow-right ml-1"></i> كل التقارير</a>',
+        'export' => 'reports-profit',
     ])
 @endsection
 @section('content')
 @php $net = $sales + $revenues - $purchases - $expenses; @endphp
-<div class="card report-filter">
-    <div class="card-body">
-        <form method="get" class="row align-items-end">
-            <div class="col-md-4 col-sm-6 form-group mb-md-0">
-                <label>من تاريخ</label>
-                <input type="date" name="from" value="{{ $from }}" class="form-control">
-            </div>
-            <div class="col-md-4 col-sm-6 form-group mb-md-0">
-                <label>إلى تاريخ</label>
-                <input type="date" name="to" value="{{ $to }}" class="form-control">
-            </div>
-            <div class="col-md-4 form-group mb-0">
-                <button class="btn btn-primary"><i class="fe fe-filter ml-1"></i> تصفية</button>
-            </div>
-        </form>
-    </div>
-</div>
+<x-filter-drawer>
+    <x-filter-field label="من تاريخ" name="from" type="date" :value="$from" />
+    <x-filter-field label="إلى تاريخ" name="to" type="date" :value="$to" />
+    <x-filter-field label="البند" name="item" type="select" :options="['المبيعات' => 'المبيعات', 'إيرادات أخرى' => 'إيرادات أخرى', 'المشتريات' => 'المشتريات', 'المصروفات' => 'المصروفات']" />
+</x-filter-drawer>
 
 <div class="row">
     <div class="col-md-3 col-sm-6"><div class="card report-stat stat-green"><div class="card-body"><span>المبيعات</span><h3>{{ money($sales) }}</h3></div></div></div>
@@ -34,22 +22,43 @@
     <div class="col-md-3 col-sm-6"><div class="card report-stat stat-red"><div class="card-body"><span>المصروفات</span><h3>{{ money($expenses) }}</h3></div></div></div>
 </div>
 
+@php
+    $incomeRows = collect([
+        ['المبيعات', $sales, false],
+        ['إيرادات أخرى', $revenues, false],
+        ['المشتريات', $purchases, true],
+        ['المصروفات', $expenses, true],
+    ])->when(request('item'), fn ($rows) => $rows->where(0, request('item')))->values();
+@endphp
 <div class="card">
-    <div class="card-header"><h4 class="card-title mb-0">قائمة الدخل</h4></div>
-    <div class="table-responsive">
-        <table class="table table-bordered mb-0">
-            <thead><tr><th class="col-serial">#</th><th>البند</th><th class="text-left">المبلغ</th></tr></thead>
-            <tbody>
-            <tr><td class="col-serial">1</td><td>المبيعات</td><td class="text-left text-success">{{ money($sales) }}</td></tr>
-            <tr><td class="col-serial">2</td><td>إيرادات أخرى</td><td class="text-left text-success">{{ money($revenues) }}</td></tr>
-            <tr><td class="col-serial">3</td><td>المشتريات</td><td class="text-left text-danger">({{ money($purchases) }})</td></tr>
-            <tr><td class="col-serial">4</td><td>المصروفات</td><td class="text-left text-danger">({{ money($expenses) }})</td></tr>
-            </tbody>
-        </table>
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h4 class="card-title mb-0">قائمة الدخل</h4>
+        <span class="badge badge-light report-count">{{ $incomeRows->count() }} {{ $incomeRows->count() === 1 ? 'بند' : 'بنود' }}</span>
     </div>
-    <div class="card-footer report-total {{ $net >= 0 ? 'is-profit' : 'is-loss' }}">
-        <span>{{ $net >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</span>
-        <strong>{{ money(abs($net)) }}</strong>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover income-sheet mb-0">
+            <thead><tr><th class="col-serial">#</th><th>البند</th><th class="col-amount">المبلغ</th></tr></thead>
+            <tbody>
+            @foreach($incomeRows as $row)
+                <tr>
+                    <td class="col-serial">{{ $loop->iteration }}</td>
+                    <td>{{ $row[0] }}</td>
+                    <td class="col-amount">
+                        <span class="amount-figure {{ $row[2] ? 'is-neg' : 'is-pos' }}">{{ money($row[1]) }}</span>
+                    </td>
+                </tr>
+            @endforeach
+            </tbody>
+            <tfoot>
+            <tr class="{{ $net >= 0 ? 'is-profit' : 'is-loss' }}">
+                <td class="col-serial"></td>
+                <td class="income-label">{{ $net >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</td>
+                <td class="col-amount">
+                    <span class="amount-figure {{ $net >= 0 ? 'is-pos' : 'is-neg' }}">{{ money(abs($net)) }}</span>
+                </td>
+            </tr>
+            </tfoot>
+        </table>
     </div>
 </div>
 @endsection
